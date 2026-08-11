@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Phase 4 Exam: Expert</title>
+<link rel="stylesheet" href="../assets/styles.css">
+</head>
+<body>
+<div class="page">
+<a class="back-link" href="../index.html">&larr; Back to curriculum</a>
+<h1>Phase 4 Exam &middot; Expert</h1>
+<div id="app"></div>
+</div>
+<script src="../assets/engine.js"></script>
+<script src="../assets/exam-pools.js"></script>
+<script src="../assets/exam-engine.js"></script>
+<script>
+PSExamInit({
+  pool: PS_EXAM_POOL_EXPERT,
+  questionCount: 10,
+  phaseLabel: "Phase 4 (Expert)",
+  examId: "exam-expert",
+  completeMessage: "That's the Expert exam, and the whole curriculum. If you're passing this one consistently, you've genuinely got what both books were building toward. Retake it any time for a fresh, randomly drawn set of questions."
+});
+</script>
+</body>
+</html>

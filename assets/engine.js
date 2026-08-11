@@ -24,8 +24,26 @@ function tokenDotStyle(cat) {
   return "background:var(--surface-2);border:0.5px dashed var(--border-strong);";
 }
 
-function markLessonDone(totalScore, maxScore) {
+function markLessonDone(totalScore, maxScore, examMeta) {
   try {
+    if (examMeta && examMeta.examId) {
+      var rawExam = localStorage.getItem("psLabExamProgress");
+      var examProgress = rawExam ? JSON.parse(rawExam) : {};
+      var pct = maxScore ? (totalScore / maxScore) : 0;
+      var prev = examProgress[examMeta.examId];
+      var prevBest = (prev && prev.bestScore) || 0;
+      examProgress[examMeta.examId] = {
+        bestScore: Math.max(prevBest, totalScore),
+        maxScore: maxScore,
+        lastScore: totalScore,
+        lastPct: pct,
+        passed: pct >= 0.7,
+        attempts: ((prev && prev.attempts) || 0) + 1,
+        lastTakenAt: new Date().toISOString()
+      };
+      localStorage.setItem("psLabExamProgress", JSON.stringify(examProgress));
+      return;
+    }
     var file = location.pathname.split("/").pop();
     var lessonId = file.replace(/\.html$/, "");
     var raw = localStorage.getItem("psLabProgress");
@@ -55,7 +73,7 @@ function PSLabInit(LESSON) {
     '<p id="score-text" style="font-size:12px;color:var(--text-muted);white-space:nowrap;margin:0;">Score: 0/' + (steps.length * 100) + '</p>' +
     '</div>' +
     '<div style="background:var(--surface-1);border-radius:12px;padding:1rem 1.25rem;margin-bottom:1rem;">' +
-    '<p style="font-size:13px;color:var(--text-secondary);margin:0 0 4px;">Manager</p>' +
+    '<p id="request-label" style="font-size:13px;color:var(--text-secondary);margin:0 0 4px;">Manager</p>' +
     '<p id="request-text" style="margin:0;font-family:var(--font-voice);font-size:16px;"></p>' +
     '</div>' +
     '<div id="log-wrap" style="display:none;margin-bottom:1rem;">' +
@@ -102,6 +120,8 @@ function PSLabInit(LESSON) {
     '</div>' +
     '<div id="next-wrap" style="display:none;"></div>' +
     '<div id="done-wrap" style="display:none;"></div>';
+
+  document.getElementById("request-label").textContent = LESSON.requestLabel || "Manager";
 
   var idx = 0;
   var solved = steps.map(function () { return false; });
@@ -317,7 +337,7 @@ function PSLabInit(LESSON) {
       var totalScore = 0;
       for (var i = 0; i < stepScore.length; i++) { if (stepScore[i] !== null) { totalScore += stepScore[i]; } }
       var maxScore = steps.length * 100;
-      markLessonDone(totalScore, maxScore);
+      markLessonDone(totalScore, maxScore, LESSON.isExam ? { examId: LESSON.examId } : null);
       var ratio = totalScore / maxScore;
       var assessment;
       if (ratio >= 0.9) { assessment = "Clean run. That is proficiency showing."; }

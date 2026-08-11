@@ -94,6 +94,10 @@ Chapter titles below are pulled straight from each PDF's table of contents, not 
 
 The entire curriculum is built and interactive: Phase 1 (Beginner, Ch 2–8), Phase 2 (Intermediate, Ch 9–19 plus the capstone), Phase 3 (Advanced, Book 1 Ch 20–27 + Book 2 Ch 2–7), and Phase 4 (Expert, Book 2 Ch 8–27). 52 scored lessons total, plus the capstone and the reference appendix, chained start to finish from Beginner 1 through the final Expert synthesis lesson.
 
+## Phase exams
+
+Each phase ends with an optional exam: 10 questions randomly drawn from a larger pool built out of that phase's own lessons, same type-the-command format as everything else, no multiple choice. Exams don't gate anything, they're available any time from the hub and retaking one draws a fresh random set. Your best score per exam is what's remembered (localStorage, this browser only), and 70% or better counts as a pass.
+
 ## Suggested pace
 
-One lesson per sitting. Redo any lesson where the score wasn't clean before moving on, the scoring exists to tell you what to revisit, not just to gamify it.
+One lesson per sitting. Redo any lesson where the score wasn't clean before moving on, the scoring exists to tell you what to revisit, not just to gamify it. Once you've cleared a phase, the exam is a good gut-check before moving on, though nothing stops you from skipping straight ahead.

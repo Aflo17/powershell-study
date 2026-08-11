@@ -370,3 +370,42 @@ a { color: var(--text-accent); }
     align-items: flex-start;
   }
 }
+
+.exam-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 12px;
+  background: var(--bg-accent);
+  border: 0.5px solid var(--border-accent);
+  border-radius: var(--radius);
+  margin: 10px 0 6px;
+}
+.exam-left {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+.exam-icon {
+  font-size: 13px;
+}
+.exam-title a {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-accent);
+  text-decoration: none;
+}
+.exam-title a:hover {
+  text-decoration: underline;
+}
+.exam-status {
+  font-size: 11px;
+  color: var(--text-accent);
+  white-space: nowrap;
+}
+.exam-status-passed {
+  color: var(--text-success);
+  font-weight: 500;
+}
