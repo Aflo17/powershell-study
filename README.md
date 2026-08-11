@@ -1,2 +1,2 @@
 # powershell-study
-interactive stufy
+interactive study
