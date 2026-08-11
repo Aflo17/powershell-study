@@ -169,3 +169,204 @@ a { color: var(--text-accent); }
   background: var(--surface-2);
   color: var(--text-muted);
 }
+
+.done-checkbox {
+  flex-shrink: 0;
+  width: 15px;
+  height: 15px;
+  margin: 0;
+  cursor: pointer;
+  accent-color: var(--border-success);
+}
+
+.lesson-row-done {
+  opacity: 0.7;
+}
+.lesson-row-done .lesson-title a {
+  text-decoration: line-through;
+  text-decoration-color: var(--border-strong);
+}
+
+.progress-overview {
+  background: var(--surface-1);
+  border-radius: var(--radius);
+  padding: 0.85rem 1rem;
+  margin-bottom: 1.75rem;
+}
+.progress-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.progress-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+.progress-reset {
+  font-size: 11px;
+  padding: 4px 10px;
+}
+.progress-bar-track {
+  width: 100%;
+  height: 8px;
+  border-radius: 6px;
+  background: var(--surface-2);
+  border: 0.5px solid var(--border-strong);
+  overflow: hidden;
+}
+.progress-bar-fill {
+  height: 100%;
+  background: var(--border-success);
+  border-radius: 6px;
+  transition: width 0.2s ease;
+}
+.progress-note {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin: 8px 0 0;
+}
+
+.phase-progress {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+.phase-progress-track {
+  width: 100%;
+  height: 5px;
+  border-radius: 4px;
+  background: var(--surface-2);
+  border: 0.5px solid var(--border);
+  overflow: hidden;
+  margin: 4px 0 10px;
+}
+.phase-progress-fill {
+  height: 100%;
+  background: var(--border-success);
+  border-radius: 4px;
+  transition: width 0.2s ease;
+}
+
+.site-header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 0.5rem;
+}
+.site-header-top h1 {
+  margin: 0;
+}
+.hints-btn {
+  flex-shrink: 0;
+  font-size: 13px;
+  font-weight: 500;
+  background: var(--bg-pro);
+  color: var(--text-pro);
+  border-color: transparent;
+}
+.hints-btn:hover {
+  filter: brightness(1.05);
+}
+
+.hints-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  z-index: 100;
+}
+.hints-card {
+  position: relative;
+  width: 100%;
+  max-width: 480px;
+  background: var(--surface-2);
+  border: 0.5px solid var(--border-strong);
+  border-radius: 14px;
+  padding: 1.75rem 1.75rem 1.25rem;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+  animation: hints-pop 0.15s ease-out;
+}
+@keyframes hints-pop {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+.hints-eyebrow {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-pro);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin: 0 0 10px;
+}
+.hints-tip-title {
+  font-size: 19px;
+  font-weight: 500;
+  margin: 0 0 10px;
+  line-height: 1.35;
+}
+.hints-tip-body {
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin: 0 0 1.25rem;
+  min-height: 84px;
+}
+.hints-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border-top: 0.5px solid var(--border);
+  padding-top: 1rem;
+}
+.hints-counter {
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+.hints-nav {
+  display: flex;
+  gap: 8px;
+}
+.hints-nav-btn {
+  font-size: 12px;
+  padding: 6px 12px;
+}
+.hints-nav-btn-primary {
+  background: var(--bg-pro);
+  color: var(--text-pro);
+  border-color: transparent;
+}
+.hints-close-btn {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  background: none;
+  border: none;
+  font-size: 20px;
+  line-height: 1;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px;
+}
+.hints-close-btn:hover {
+  color: var(--text-primary);
+}
+
+@media (max-width: 480px) {
+  .site-header-top {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .hints-footer {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

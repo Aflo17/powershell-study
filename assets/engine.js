@@ -24,6 +24,24 @@ function tokenDotStyle(cat) {
   return "background:var(--surface-2);border:0.5px dashed var(--border-strong);";
 }
 
+function markLessonDone(totalScore, maxScore) {
+  try {
+    var file = location.pathname.split("/").pop();
+    var lessonId = file.replace(/\.html$/, "");
+    var raw = localStorage.getItem("psLabProgress");
+    var progress = raw ? JSON.parse(raw) : {};
+    progress[lessonId] = {
+      done: true,
+      score: totalScore,
+      maxScore: maxScore,
+      completedAt: new Date().toISOString()
+    };
+    localStorage.setItem("psLabProgress", JSON.stringify(progress));
+  } catch (e) {
+    // localStorage unavailable (e.g. some restricted local file contexts) -- fail silently, scoring still works
+  }
+}
+
 function PSLabInit(LESSON) {
   var steps = LESSON.steps;
   steps.forEach(function (s) {
@@ -299,6 +317,7 @@ function PSLabInit(LESSON) {
       var totalScore = 0;
       for (var i = 0; i < stepScore.length; i++) { if (stepScore[i] !== null) { totalScore += stepScore[i]; } }
       var maxScore = steps.length * 100;
+      markLessonDone(totalScore, maxScore);
       var ratio = totalScore / maxScore;
       var assessment;
       if (ratio >= 0.9) { assessment = "Clean run. That is proficiency showing."; }

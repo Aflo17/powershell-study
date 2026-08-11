@@ -9,8 +9,36 @@
 <body>
 <div class="page">
 <div class="site-header">
+<div class="site-header-top">
 <h1>PowerShell Proficiency Path</h1>
+<button id="hints-open-btn" class="hints-btn">&#128161; Helpful Hints</button>
+</div>
 <p>Scenario-based lessons sourced from <em>Learn PowerShell in a Month of Lunches, 4th Edition</em> and <em>Learn PowerShell Scripting in a Month of Lunches, 2nd Edition</em>. Each lesson: a manager's request, hoverable syntax pieces, simulated wrong-turn output, and a running score.</p>
+</div>
+
+<div id="hints-overlay" class="hints-overlay">
+<div class="hints-card">
+<p class="hints-eyebrow">&#128161; Helpful Hint</p>
+<h2 id="hints-tip-title" class="hints-tip-title"></h2>
+<p id="hints-tip-body" class="hints-tip-body"></p>
+<div class="hints-footer">
+<span id="hints-counter" class="hints-counter"></span>
+<div class="hints-nav">
+<button id="hints-prev-btn" class="hints-nav-btn">&larr; Previous</button>
+<button id="hints-next-btn" class="hints-nav-btn hints-nav-btn-primary">Next tip &rarr;</button>
+</div>
+</div>
+<button id="hints-close-btn" class="hints-close-btn" aria-label="Close">&times;</button>
+</div>
+</div>
+
+<div class="progress-overview">
+<div class="progress-header">
+<span id="progress-label" class="progress-label">0 / 0 lessons complete</span>
+<button id="reset-progress-btn" class="progress-reset">Reset progress</button>
+</div>
+<div class="progress-bar-track"><div id="progress-bar-fill" class="progress-bar-fill" style="width:0%"></div></div>
+<p class="progress-note">Progress is saved in this browser only (no account, no server) &mdash; check a lesson off yourself, or it checks off automatically when you finish one.</p>
 </div>
 
 <div class="phase-section">
@@ -93,5 +121,8 @@
 </div>
 
 </div>
+<script src="assets/progress.js"></script>
+<script src="assets/tips.js"></script>
+<script src="assets/hints.js"></script>
 </body>
 </html>
