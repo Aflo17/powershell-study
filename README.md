@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # PowerShell Proficiency Path
 
 Interactive, scenario-based PowerShell lessons built from *Learn PowerShell in a Month of Lunches, 4th Edition* and *Learn PowerShell Scripting in a Month of Lunches, 2nd Edition*. No build tools, no server, no dependencies — plain HTML, CSS, and JavaScript.
@@ -48,3 +49,7 @@ The shared engine (`assets/engine.js`) and styling (`assets/styles.css`) don't n
 ## Credit
 
 Curriculum structure sourced from the table of contents of both books, used here for personal study reference. The exercises, mock data, and explanations are original.
+=======
+# powershell-study
+interactive study
+>>>>>>> 615c38e35bf526a8b48596f7c36a174362160d94
