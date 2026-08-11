@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Intermediate 2: The Pipeline, Deeper</title>
+<link rel="stylesheet" href="../assets/styles.css">
+</head>
+<body>
+<div class="page">
+<a class="back-link" href="../index.html">&larr; Back to curriculum</a>
+<h1>Intermediate 2 &middot; Ch 10: The pipeline, deeper</h1>
+<div id="app"></div>
+</div>
+<script src="../assets/engine.js"></script>
+<script>
+var LESSON = {
+title: "Intermediate 2",
+request: "I just need a plain list of service names, not a table full of objects. Then explain to me why I can pipe Get-Service straight into Stop-Service without typing -Name myself, and show me that same trick working safely across a whole list at once.",
+completeMessage: "You pulled raw values two different ways, saw exactly why piping straight into Stop-Service works without retyping a name, and chained a filter into it with a safety check. That ByValue binding, PowerShell matching a piped object to a parameter automatically, is the deeper mechanic behind everything the pipeline has done so far.",
+nextHref: "intermediate-03-formatting.html",
+hubHref: "../index.html",
+steps: [
+{
+title: "Step 1 of 3 - get plain names, not objects",
+task: "Get just the plain text names of every service, not a table of full objects.",
+prefill: "",
+chips: [
+{text:"(Get-Service).Name", hint:"Wrapping a command in parentheses lets you reach into its result and pull out one property directly, as plain values."},
+{text:"Get-Service | Select-Object Name", hint:"Returns objects with one property each, not plain strings."},
+{text:"Get-Service", hint:"Returns full service objects, several columns wide."}
+],
+check: function(c){ return /\(get-service\)\.name/i.test(c); },
+misses: [
+{test: function(c){ return /get-service/i.test(c) && /select-object/i.test(c) && /name/i.test(c) && !/\(get-service\)/i.test(c); }, output: "Name\n----\nSpooler\nwuauserv\nWinDefend", note: "That's close, and it looks like plain text, but each row is still a full object with one property called Name, not a raw string. Wrapping the command in parentheses and dotting into .Name gives you actual plain string values instead."}
+],
+hint: "Wrap Get-Service in parentheses, then dot into .Name to pull the raw string values straight out, instead of objects with one property.",
+tokens: [
+{text:"(Get-Service).Name", cat:"value", note:"The parentheses run the command first, then .Name reaches into every result and extracts just that one property as a plain value."}
+],
+output: "Spooler\nwuauserv\nWinDefend",
+order: "This is the simplest way to extract raw values, worth knowing before the rest of the lesson builds on how those values interact with the pipeline.",
+notice: [
+{field:"Spooler, wuauserv, WinDefend", note:"Plain text, no columns, no object wrapper, just the values themselves."}
+],
+distractor: {
+name: "Get-Service | Select-Object Name",
+why: "This narrows the object down to one property, but it's still an object with a Name property attached, not a raw string. Printed to the screen it looks almost identical, the difference shows up if you try to use the result as plain text somewhere else.",
+better: "Better fit for: when you want to keep working with it as an object further down a pipeline, not when you need a plain value right now."
+},
+concepts: [
+{term: "Extracting a raw property value", explain: "(Command).Property runs the command, then reaches directly into the result for one property as a plain value. Different from Select-Object, which keeps the result as an object with just that property attached."}
+]
+},
+{
+title: "Step 2 of 3 - pipe straight into Stop-Service",
+task: "Now stop the Spooler service by piping it straight in, without typing -Name yourself on the second command.",
+prefill: "",
+chips: [
+{text:"Get-Service", hint:"Finds the service object first."},
+{text:"-Name Spooler", hint:"Narrows to the specific service."},
+{text:"Stop-Service", hint:"Accepts a piped-in service object directly, matching it to its own -InputObject parameter automatically."}
+],
+check: function(c){ return /get-service/i.test(c) && /spooler/i.test(c) && /\|/.test(c) && /stop-service/i.test(c); },
+misses: [],
+hint: "Get-Service -Name Spooler piped straight into Stop-Service, no need to type the name a second time.",
+tokens: [
+{text:"Get-Service", cat:"cmdlet", note:"Finds the exact service object."},
+{text:"-Name", cat:"param", note:"Narrows to one specific service."},
+{text:"Spooler", cat:"value", note:"The service being targeted."},
+{text:"|", cat:"pipe", note:"Sends the found object into the next command."},
+{text:"Stop-Service", cat:"cmdlet", note:"Accepts the piped service object directly and stops it, no name retyped."}
+],
+output: "(service 'Spooler' stopped)",
+order: "This demonstrates the actual mechanic the request is asking about: piping works here because Stop-Service is built to accept a service object directly as input, matching it automatically.",
+notice: [
+{field:"no -Name typed on Stop-Service", note:"This is the whole point, the piped object supplied everything Stop-Service needed on its own."}
+],
+distractor: {
+name: "Typing -Name twice manually",
+why: "Get-Service -Name Spooler, then separately Stop-Service -Name Spooler works, but it defeats the purpose of this exercise: understanding why the pipe alone is enough.",
+better: "Better fit for: never really, once you understand the piping works, there's no reason to type the name twice."
+},
+concepts: [
+{term: "Pipeline input ByValue", explain: "Some cmdlets accept an entire piped-in object directly, matching it to one of their own parameters automatically, usually the one accepting that object's exact type. That's why Get-Service | Stop-Service works with zero extra typing."}
+]
+},
+{
+title: "Step 3 of 3 - chain a filter into it safely",
+task: "Now do the same trick across every running service, but check first before actually stopping anything.",
+prefill: "",
+chips: [
+{text:"Get-Service", hint:"Same starting point."},
+{text:"Where-Object", hint:"Filters down to just the services matching a condition."},
+{text:"{$_.Status -eq 'Running'}", hint:"Only services currently running."},
+{text:"Stop-Service", hint:"Same destructive cmdlet as step 2."},
+{text:"-WhatIf", hint:"Previews what would happen without actually stopping anything."}
+],
+check: function(c){ return /get-service/i.test(c) && /where-object/i.test(c) && /running/i.test(c) && /stop-service/i.test(c) && /-whatif/i.test(c); },
+misses: [
+{test: function(c){ return /get-service/i.test(c) && /where-object/i.test(c) && /stop-service/i.test(c) && !/-whatif/i.test(c); }, output: "(every currently running service on the machine actually stops, including ones you probably needed)", note: "That's the same chain, without a safety check, aimed at every running service on the entire machine. Running that for real without -WhatIf first would take down services you almost certainly still need."}
+],
+hint: "Chain Get-Service, Where-Object filtering to Running, and Stop-Service, but add -WhatIf at the end before ever running it for real.",
+tokens: [
+{text:"Get-Service", cat:"cmdlet", note:"Same starting point as every step in this lesson."},
+{text:"Where-Object", cat:"cmdlet", note:"Filters the pipeline down to just services matching the condition."},
+{text:"{$_.Status -eq 'Running'}", cat:"param", note:"Only services currently running make it through."},
+{text:"Stop-Service", cat:"cmdlet", note:"Same cmdlet from step 2, now receiving multiple piped-in objects instead of just one."},
+{text:"-WhatIf", cat:"param", note:"Shows what would happen to every matched service, without actually stopping any of them."}
+],
+output: "What if: Performing the operation \"Stop-Service\" on target \"Spooler\".\nWhat if: Performing the operation \"Stop-Service\" on target \"WinDefend\".",
+order: "This comes last because it combines everything: extracting values, ByValue piping, filtering, and this lesson's new safety habit, checking before a chain aimed at every matching service on the whole machine, not just one you already picked by name.",
+notice: [
+{field:"What if:", note:"Nothing actually stopped, this is a preview of a chain broad enough that you really want to see it before it runs for real."}
+],
+distractor: {
+name: "Running it live without -WhatIf first",
+why: "This chain targets every running service on the machine, not one you picked by name like step 2. Running something that broad for the first time without previewing it risks stopping services you actually needed.",
+better: "Better fit for: once you've reviewed the -WhatIf output and are confident it's only touching what you intended."
+},
+concepts: [
+{term: "Piping many objects at once", explain: "The same ByValue binding from step 2 works whether one object or many flow through the pipe. Stop-Service | ForEach-Object under the hood, receiving each matched service one at a time."}
+]
+}
+]
+};
+PSLabInit(LESSON);
+</script>
+</body>
+</html>

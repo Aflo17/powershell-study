@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Capstone: Pull This User's Groups and Permissions</title>
+<link rel="stylesheet" href="../assets/styles.css">
+</head>
+<body>
+<div class="page">
+<a class="back-link" href="../index.html">&larr; Back to curriculum</a>
+<h1>Phase 2 Capstone &middot; Pull this user's groups and permissions</h1>
+<div id="app"></div>
+</div>
+<script src="../assets/engine.js"></script>
+<script>
+var bs = String.fromCharCode(92);
+var uncPath = bs + bs + "fileserver" + bs + "Finance" + bs + "Shared";
+var LESSON = {
+title: "Capstone",
+request: "Sarah on the finance team is locked out of the shared drive. Can you check what security groups she is in and whether she actually has permission to that folder?",
+completeMessage: "Sarah is in Finance-ShareAccess, and that group has Modify on the folder. On paper she has access, so the lockout is probably a stale credential or cached token, not a permissions gap. That is the payoff of this pattern: group membership alone does not answer the question, the ACL does.",
+hubHref: "../index.html",
+steps: [
+{
+title: "Step 1 of 4 - find the account",
+task: "Write the command to look up Sarah Chen's AD account.",
+prefill: "",
+chips: [
+{text:"Get-ADUser", hint:"Looks up one Active Directory user account, by identity or by filter."},
+{text:"-Identity", hint:"Exact-match parameter. Give it one precise identifier, like a login name."},
+{text:"sarah.chen", hint:"Sarah's sAMAccountName, her login name in Active Directory."},
+{text:"Get-ADGroup", hint:"Looks up a group object, not a person. Think about whether sarah.chen is a group name."},
+{text:"-Filter", hint:"Looser match parameter, good for display names or partial matches instead of one exact identity."}
+],
+check: function(c){ return /get-aduser/i.test(c) && /sarah/i.test(c) && (/-identity/i.test(c) || /-filter/i.test(c)); },
+misses: [
+{test: function(c){ return /get-adgroup/i.test(c) && !/get-adgroupmember/i.test(c); }, output: "Get-ADGroup : Cannot find an object with identity: 'sarah.chen' under: 'DC=corp,DC=local'", note: "That ran, but sarah.chen isn't a group, so there's nothing for Get-ADGroup to find. Switch to Get-ADUser, that's the cmdlet for a person."}
+],
+hint: "You need Get-ADUser, not Get-ADGroup, and it needs a parameter, not just a bare name. Use -Identity sarah.chen, or -Filter to match on her display name.",
+tokens: [
+{text:"Get-ADUser", cat:"cmdlet", note:"The cmdlet that looks up one Active Directory account."},
+{text:"-Identity", cat:"param", note:"Tells PowerShell exactly which account to fetch, using an exact identifier rather than a search."},
+{text:"sarah.chen", cat:"value", note:"Her sAMAccountName, the short login name Active Directory uses internally."}
+],
+output: "DistinguishedName : CN=Sarah Chen,OU=Finance,DC=corp,DC=local\nEnabled           : True\nName              : Sarah Chen\nSamAccountName    : sarah.chen",
+order: "This is always the first command in a request like this. Everything you do next, her groups, her permissions, needs her account object as the starting point. You cannot look up group membership for a person PowerShell has not found yet.",
+notice: [
+{field:"OU=Finance", note:"Her Organizational Unit. This is often how default group memberships and policies get applied in the first place."},
+{field:"SamAccountName", note:"This exact value is what you reuse as -Identity in the next step."}
+],
+distractor: {
+name: "Get-ADGroup",
+why: "Get-ADGroup looks up a group object, not a person. Pointed at sarah.chen it returns nothing, there is no group with that name, you would just get an empty result or an error.",
+better: "Better fit for: when the request is about a group itself, for example, who owns the Finance-ShareAccess group or what type of group it is, not what groups a person belongs to."
+},
+concepts: [
+{term: "Verb-Noun naming", explain: "Real cmdlets follow Verb-Noun, like Get-ADUser or Where-Object. The verb is the action (Get, Set, New, Remove), the noun is what it acts on. Guessing a cmdlet name almost always works if you think this way."},
+{term: "-Identity", explain: "A parameter name reused across almost every AD cmdlet. It always means the same thing: give me the one exact thing you're pointing at, not a search."}
+]
+},
+{
+title: "Step 2 of 4 - list her groups",
+task: "Now find every group sarah.chen belongs to.",
+prefill: "",
+chips: [
+{text:"Get-ADPrincipalGroupMembership", hint:"Given a user, lists every group that user belongs to."},
+{text:"-Identity", hint:"Picks which user's memberships to list."},
+{text:"sarah.chen", hint:"The account you confirmed in step 1."},
+{text:"Get-ADGroupMember", hint:"Given a group, lists the members inside it. Runs the opposite direction from what this step needs."}
+],
+check: function(c){ return /get-adprincipalgroupmembership/i.test(c) && /-identity/i.test(c) && /sarah/i.test(c); },
+misses: [
+{test: function(c){ return /get-adgroupmember/i.test(c) && !/get-adprincipalgroupmembership/i.test(c); }, output: "Get-ADGroupMember : Cannot find an object with identity: 'sarah.chen' under: 'DC=corp,DC=local'", note: "That ran, but Get-ADGroupMember expects a group as input, not a person. It went looking for a group called sarah.chen and found nothing. Flip to Get-ADPrincipalGroupMembership, that goes user to groups instead of group to members."}
+],
+hint: "Get-ADGroupMember goes the other way, group to members. You want Get-ADPrincipalGroupMembership, and it still needs -Identity sarah.chen, not just a bare name.",
+tokens: [
+{text:"Get-ADPrincipalGroupMembership", cat:"cmdlet", note:"Given a user, lists every group that user belongs to."},
+{text:"-Identity", cat:"param", note:"Same parameter name as step 1, but here it picks the user whose memberships you want, not the account to display."},
+{text:"sarah.chen", cat:"value", note:"The SamAccountName confirmed by step 1's output."}
+],
+output: "Name                  GroupCategory  GroupScope\n----                  -------------  ----------\nDomain Users          Security       Global\nVPN-Users             Security       Global\nFinance-Team          Distribution   Global\nFinance-ShareAccess   Security       Global",
+order: "This comes right after step 1 because -Identity sarah.chen only means something once you know that is really her account name. In a real script you would pipe step 1's output straight into this command instead of retyping the name.",
+notice: [
+{field:"Finance-Team, Distribution", note:"A distribution group, mailing list only. It cannot grant file permissions no matter what."},
+{field:"Finance-ShareAccess, Security", note:"A security group. This is the type that can actually appear on a folder's ACL."}
+],
+distractor: {
+name: "Get-ADGroupMember",
+why: "Get-ADGroupMember expects a group as input and lists the people or objects inside it. Pointed at sarah.chen it errors, sarah.chen is not a group, it runs the relationship backward from what you need here.",
+better: "Better fit for: when the request flips direction, for example, who is in the Finance-ShareAccess group, rather than what groups is Sarah in."
+},
+concepts: [
+{term: "Everything is an object", explain: "This cmdlet does not return lines of text, it returns full objects with named properties attached, like Name and GroupCategory. That is exactly why the next step can filter on GroupCategory with no text parsing at all."}
+]
+},
+{
+title: "Step 3 of 4 - filter to security groups",
+task: "Distribution lists do not grant file access. Narrow the list down to security groups only.",
+prefill: "",
+continuesFromLabel: "Starting you off with your step 2 command below. Add on to it, don't retype it.",
+chips: [
+{text:"|", hint:"Pipe operator. Sends every object from the left into the command on the right, one at a time."},
+{text:"Where-Object", hint:"Tests each incoming object against a condition and only lets matches through."},
+{text:"{$_.GroupCategory -eq 'Security'}", hint:"Script block. $_ is the current object; this checks its GroupCategory property equals Security."},
+{text:"Select-Object", hint:"Reshapes or narrows down properties or rows, but never tests a condition."}
+],
+check: function(c){ return /get-adprincipalgroupmembership/i.test(c) && /-identity/i.test(c) && /sarah/i.test(c) && /\|/.test(c) && /where-object/i.test(c) && /groupcategory/i.test(c) && /security/i.test(c); },
+misses: [
+{test: function(c){ return /select-object/i.test(c) && !/where-object/i.test(c); }, output: "Name                  GroupCategory  GroupScope\n----                  -------------  ----------\nDomain Users          Security       Global\nVPN-Users             Security       Global\nFinance-Team          Distribution   Global\nFinance-ShareAccess   Security       Global", note: "That ran, but Select-Object only reshapes columns, it never tests a condition. Finance-Team, a Distribution group, is still sitting right there in the list. Swap in Where-Object to actually filter it out."}
+],
+hint: "You already have the command from step 2 in the box. Add a pipe, then Where-Object, then compare $_.GroupCategory to Security. All of it needs to stay, not just the new part.",
+tokens: [
+{text:"Get-ADPrincipalGroupMembership", cat:"cmdlet", note:"Same command as step 2, unchanged, it still has to run first."},
+{text:"-Identity", cat:"param", note:"Still selecting sarah.chen as the user."},
+{text:"sarah.chen", cat:"value", note:"Same value as step 2."},
+{text:"|", cat:"pipe", note:"The pipe operator. Everything Get-ADPrincipalGroupMembership outputs gets sent into Where-Object, one group object at a time."},
+{text:"Where-Object", cat:"cmdlet", note:"Tests each incoming object against a condition and only lets matches through."},
+{text:"{$_.GroupCategory -eq 'Security'}", cat:"param", note:"A script block. $_ means the current object in the pipeline. This checks whether its GroupCategory property equals Security using the -eq comparison operator."}
+],
+output: "Name                  GroupCategory  GroupScope\n----                  -------------  ----------\nDomain Users          Security       Global\nVPN-Users             Security       Global\nFinance-ShareAccess   Security       Global",
+order: "Where-Object comes after the AD lookup, never before, because it can only filter properties that already exist on objects already in the pipeline. You are not filtering Active Directory itself here, you are filtering the result you already pulled in step 2.",
+notice: [
+{field:"3 rows instead of 4", note:"Finance-Team dropped out because it is a Distribution group, not Security. That is the filter working correctly."}
+],
+distractor: {
+name: "Select-Object",
+why: "Select-Object trims which properties or how many rows you see, but it never tests a condition. It cannot decide that Finance-Team should be dropped because that requires evaluating GroupCategory, which is a job for Where-Object.",
+better: "Better fit for: once you already have exactly the rows you want and just need fewer columns or the top few results, for example Select-Object Name, GroupScope or Select-Object -First 5."
+},
+concepts: [
+{term: "| the pipe", explain: "Sends whatever comes out of the command on the left into the command on the right, one object at a time. This is the backbone of PowerShell, small commands chained together instead of one giant command trying to do everything."},
+{term: "{ } script block", explain: "Curly braces wrap a small piece of code that runs once per object passing through. Where-Object, ForEach-Object, and If all use this same pattern, so once it clicks here it clicks everywhere."},
+{term: "$_ automatic variable", explain: "Inside a script block, $_ always means the current object being processed right now. First pass through the pipeline it is the first group, second pass it is the second group, and so on."},
+{term: "-eq and friends", explain: "PowerShell comparison operators start with a dash: -eq, -ne, -gt, -lt, -like. Not == or !=. This is one of the most common trip-ups coming from other languages."}
+]
+},
+{
+title: "Step 4 of 4 - check the actual folder permission",
+task: "Being in a security group is not the same as having access. Check the ACL on " + uncPath,
+prefill: "",
+continuesFromLabel: "The path above comes straight from the request, and it's also sitting in the chips below so you don't have to retype it by hand.",
+chips: [
+{text:"Get-Acl", hint:"Reads the actual Windows permissions, the ACL, for a file system path."},
+{text:"'" + uncPath + "'", hint:"The folder path from the request above, in single quotes. Get-Acl needs a path here, not a group or user name."},
+{text:"|", hint:"Pipe operator. Sends Get-Acl's single output object into the next command."},
+{text:"Select-Object -Expand Access", hint:"Unwraps the bundled Access property into individual rows, one per rule. Without this, Get-Acl still works, but everything is crammed into one hard-to-read property."},
+{text:"Get-ADUser", hint:"Returns account attributes only, no concept of NTFS permissions or ACLs."}
+],
+check: function(c){ return /get-acl/i.test(c) && /finance/i.test(c) && /expand/i.test(c); },
+misses: [
+{test: function(c){ return /get-acl/i.test(c) && /finance/i.test(c) && !/expand/i.test(c); }, output: "Path   : Microsoft.PowerShell.Core\\FileSystem::" + uncPath + "\nOwner  : CORP\\Admin\nAccess : CORP\\Finance-ShareAccess Allow Modify\n         CORP\\Domain Admins Allow FullControl", note: "That ran, and the answer is technically buried in there, but Access is one long crammed value, hard to confirm anything at a glance. Pipe it into Select-Object -Expand Access to break it into readable rows."},
+{test: function(c){ return /get-aduser/i.test(c) && !/get-acl/i.test(c); }, output: "DistinguishedName : CN=Sarah Chen,OU=Finance,DC=corp,DC=local\nEnabled           : True\nName              : Sarah Chen\nSamAccountName    : sarah.chen", note: "That ran, but it is just her account again, same as step 1. Get-ADUser has no idea what permissions exist on a folder, that lives in the file system, not in Active Directory. Switch to Get-Acl."}
+],
+hint: "Get-Acl on its own gets you the ACL object, but everything is bundled into one Access property that is hard to read. Pipe it into Select-Object -Expand Access to break it into individual rows: Get-Acl then the path, then | Select-Object -Expand Access",
+tokens: [
+{text:"Get-Acl", cat:"cmdlet", note:"Reads the Windows security descriptor, the actual permissions list, for a file system path."},
+{text:"'" + uncPath + "'", cat:"value", note:"The folder path, in single quotes. This is a path, not a username or group name, which is the whole point of this step."},
+{text:"|", cat:"pipe", note:"Pipe operator again. Get-Acl's single output object flows into Select-Object next."},
+{text:"Select-Object", cat:"cmdlet", note:"Reshapes or narrows down the object coming through the pipeline."},
+{text:"-Expand", cat:"param", note:"Short for -ExpandProperty. Unwraps a property that holds a collection into individual rows."},
+{text:"Access", cat:"value", note:"Get-Acl bundles every access rule into one Access property. This is the property being expanded."}
+],
+output: "IdentityReference          AccessControlType  FileSystemRights\n------------------          -----------------  ----------------\nCORP\\Finance-ShareAccess    Allow              Modify\nCORP\\Domain Admins          Allow              FullControl",
+order: "This is the last step because it answers a different question than steps 2 and 3. Those tell you what groups she is in. This tells you whether being in that group actually grants anything on this specific folder. Group membership and folder permissions are two separate systems in Windows, and this order mirrors that: confirm membership first, then confirm the ACL actually references it.",
+notice: [
+{field:"CORP\\Finance-ShareAccess, Modify", note:"This is the group from step 3 appearing directly on the folder's ACL with Modify rights. This is the proof that access should work."}
+],
+distractor: {
+name: "Get-ADUser",
+why: "Get-ADUser only returns account attributes like name, enabled status, and OU. It has no concept of NTFS permissions or folder ACLs, those live in the file system, not in Active Directory, so it cannot answer whether she has access to the folder.",
+better: "Better fit for: any time the question is about the account itself, for example is her account still enabled, or when did her password last change."
+},
+concepts: [
+{term: "-Expand / -ExpandProperty", explain: "Many parameter names have a short form PowerShell will accept as long as it is unambiguous. -Expand works here for -ExpandProperty. Full names read better in scripts you will reread later, short forms are fine typed live."},
+{term: "Quoting a path", explain: "Paths with spaces or backslashes need quotes. Single quotes mean take this literally, double quotes would let PowerShell expand variables inside the string."},
+{term: "Why the plain command was not enough", explain: "Get-Acl by itself does return the right permissions, but it bundles everything into one Access property as one long value. Piping into Select-Object -Expand Access is what turns that into one readable row per rule, which is what actually lets you confirm Finance-ShareAccess has Modify."},
+{term: "Reading the path off the request", explain: "Not every value comes from a chip in real work. The folder path here came straight from the manager's message, the same way a ticket or a Slack message would hand it to you. Part of getting proficient is learning to scan the request for the literal values a command needs, not just the cmdlet names."}
+]
+}
+]
+};
+PSLabInit(LESSON);
+</script>
+</body>
+</html>

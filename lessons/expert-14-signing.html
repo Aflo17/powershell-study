@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Expert 14: Signing Your Script</title>
+<link rel="stylesheet" href="../assets/styles.css">
+</head>
+<body>
+<div class="page">
+<a class="back-link" href="../index.html">&larr; Back to curriculum</a>
+<h1>Expert 14 &middot; Book 2, Ch 21: Signing your script</h1>
+<div id="app"></div>
+</div>
+<script src="../assets/engine.js"></script>
+<script>
+var LESSON = {
+title: "Expert 14",
+request: "Now that ScriptingMOL is a real module other people will actually load, I want it digitally signed with our internal code-signing certificate, not left unsigned like the random gist from an earlier lesson. Find the right certificate first, then actually sign the module file with it, and confirm the signature is genuinely valid afterward.",
+completeMessage: "You found the actual code-signing certificate instead of assuming one existed, signed the module file with it directly, and confirmed the resulting signature was genuinely valid, not just present. A script can carry a signature and still be broken or invalid, checking status directly is what actually confirms trust, not just the presence of a signature.",
+nextHref: "expert-15-publishing.html",
+hubHref: "../index.html",
+steps: [
+{
+title: "Step 1 of 3 - find the code-signing certificate",
+task: "Before signing anything, find the actual code-signing certificate available on this machine.",
+prefill: "",
+chips: [
+{text:"Get-ChildItem", hint:"The same cmdlet from way back in an earlier lesson, here pointed at the certificate provider."},
+{text:"-Path Cert:\\CurrentUser\\My", hint:"The certificate store, accessed through PowerShell's Cert: provider, exactly like a filesystem path."},
+{text:"-CodeSigningCert", hint:"Filters specifically to certificates valid for code signing, not just any certificate sitting in the store."}
+],
+check: function(c){ return /get-childitem/i.test(c) && /cert:/i.test(c) && /-codesigningcert/i.test(c); },
+misses: [
+{test: function(c){ return /get-childitem/i.test(c) && /cert:/i.test(c) && !/-codesigningcert/i.test(c); }, output: "Subject                  Thumbprint                                EnhancedKeyUsageList\n-------                  ----------                                ---------------------\nCN=jsmith                A1B2C3D4E5F6...                            Client Authentication\nCN=IT Code Signing       F6E5D4C3B2A1...                            Code Signing", note: "Without -CodeSigningCert, every certificate in the store shows up, including ones meant for entirely different purposes, like client authentication. -CodeSigningCert filters specifically to certificates actually valid for signing scripts, avoiding the risk of picking the wrong one."}
+],
+hint: "Get-ChildItem -Path Cert:\\CurrentUser\\My -CodeSigningCert, filtering specifically to certificates actually valid for signing scripts.",
+tokens: [
+{text:"Get-ChildItem", cat:"cmdlet", note:"The same discovery cmdlet from way back in an earlier lesson, here pointed at PowerShell's certificate provider instead of the filesystem."},
+{text:"-Path", cat:"param", note:"Where to look, this time a certificate store instead of a folder."},
+{text:"Cert:\\CurrentUser\\My", cat:"value", note:"The current user's personal certificate store, accessed through the same path-like syntax as any filesystem provider."},
+{text:"-CodeSigningCert", cat:"param", note:"Filters specifically to certificates valid for code signing, avoiding unrelated certificates in the same store."}
+],
+output: "Subject                  Thumbprint                                EnhancedKeyUsageList\n-------                  ----------                                ---------------------\nCN=IT Code Signing       F6E5D4C3B2A1...                            Code Signing",
+order: "This runs first, confirming the actual certificate to use exists and is genuinely valid for code signing, before attempting to sign anything with it.",
+notice: [
+{field:"Thumbprint: F6E5D4C3B2A1...", note:"A unique identifier for this specific certificate, needed to reference it precisely in the actual signing step next."}
+],
+distractor: {
+name: "Get-ChildItem Cert:\\CurrentUser\\My without -CodeSigningCert",
+why: "Returns every certificate in the store regardless of purpose, including ones for client authentication or other unrelated uses, risking picking the wrong certificate entirely.",
+better: "Better fit for: browsing every certificate in the store generally, not specifically finding one suited to code signing."
+},
+concepts: [
+{term: "The Cert: provider", explain: "PowerShell exposes the certificate store through a provider, accessed with the same path-like syntax as the filesystem, Cert:\\CurrentUser\\My. -CodeSigningCert filters specifically to certificates valid for signing scripts."}
+]
+},
+{
+title: "Step 2 of 3 - sign the module file",
+task: "Now actually sign ScriptingMOL.psm1 with the certificate found in step 1.",
+prefill: "",
+chips: [
+{text:"$cert = Get-ChildItem -Path Cert:\\CurrentUser\\My -CodeSigningCert", hint:"Storing the certificate from step 1 in a variable, ready to actually use."},
+{text:"Set-AuthenticodeSignature", hint:"Applies a digital signature to a file, using a specific certificate."},
+{text:"-FilePath 'ScriptingMOL\\ScriptingMOL.psm1' -Certificate $cert", hint:"The file being signed, and the certificate signing it."}
+],
+check: function(c){ return /set-authenticodesignature/i.test(c) && /scriptingmol\.psm1/i.test(c); },
+misses: [
+{test: function(c){ return /get-authenticodesignature/i.test(c) && !/set-authenticodesignature/i.test(c); }, output: "(this only checks the current signature status, exactly what's needed later in step 3, it doesn't actually apply a new signature to anything)", note: "Get-AuthenticodeSignature checks a file's current signature status, useful, but not the same command that actually applies one. Set-AuthenticodeSignature is the cmdlet that performs the real signing, using the certificate found in step 1."}
+],
+hint: "$cert = Get-ChildItem -Path Cert:\\CurrentUser\\My -CodeSigningCert, then Set-AuthenticodeSignature -FilePath 'ScriptingMOL\\ScriptingMOL.psm1' -Certificate $cert, actually applying the signature.",
+tokens: [
+{text:"$cert = Get-ChildItem -Path Cert:\\CurrentUser\\My -CodeSigningCert", cat:"value", note:"The certificate from step 1, stored in a variable for actual use."},
+{text:"Set-AuthenticodeSignature", cat:"cmdlet", note:"Applies a real digital signature to a file, using a specific certificate."},
+{text:"-FilePath", cat:"param", note:"The file being signed."},
+{text:"'ScriptingMOL\\ScriptingMOL.psm1'", cat:"value", note:"The actual module file."},
+{text:"-Certificate", cat:"param", note:"Which certificate to sign with."},
+{text:"$cert", cat:"value", note:"The certificate found and stored in step 1."}
+],
+output: "SignerCertificate                        Status                                    Path\n------------------                       ------                                    ----\nF6E5D4C3B2A1...                          Valid                                     ScriptingMOL.psm1",
+order: "This comes right after finding the certificate, actually applying it to the module file that step 3 will then independently confirm is genuinely valid.",
+notice: [
+{field:"Status: Valid, right after signing", note:"An early positive signal, though step 3 confirms this more thoroughly rather than just trusting this immediate result."}
+],
+distractor: {
+name: "Get-AuthenticodeSignature instead of Set-AuthenticodeSignature",
+why: "Only checks a file's current signature status, useful, and exactly what step 3 uses, but it doesn't actually apply a new signature to anything. Set-AuthenticodeSignature is the cmdlet that performs the real signing.",
+better: "Better fit for: confirming a signature's status after it's already been applied, exactly step 3's purpose."
+},
+concepts: [
+{term: "Set-AuthenticodeSignature", explain: "Applies a real digital signature to a script or module file using a specific certificate. Distinct from Get-AuthenticodeSignature, which only checks an existing signature's current status without applying anything new."}
+]
+},
+{
+title: "Step 3 of 3 - confirm the signature is genuinely valid",
+task: "Now independently confirm the signature is genuinely valid, not just present.",
+prefill: "",
+chips: [
+{text:"Get-AuthenticodeSignature", hint:"Checks a file's actual signature status, the same cmdlet from an earlier lesson checking the unsigned gist script."},
+{text:"'ScriptingMOL\\ScriptingMOL.psm1'", hint:"The just-signed module file."}
+],
+check: function(c){ return /get-authenticodesignature/i.test(c) && /scriptingmol\.psm1/i.test(c); },
+misses: [
+{test: function(c){ return /scriptingmol\.psm1/i.test(c) && !/get-authenticodesignature/i.test(c); }, output: "(trusting step 2's own immediate output rather than independently checking, a script can carry a signature that's technically present but expired, revoked, or otherwise not genuinely trustworthy)", note: "A file can technically carry a signature that's present but not actually valid, expired, revoked, or otherwise broken. Independently checking with Get-AuthenticodeSignature, the exact same cmdlet from an earlier lesson, confirms genuine validity rather than just trusting that signing appeared to succeed."}
+],
+hint: "Get-AuthenticodeSignature 'ScriptingMOL\\ScriptingMOL.psm1', the same cmdlet from an earlier lesson, now independently confirming this signature is genuinely valid.",
+tokens: [
+{text:"Get-AuthenticodeSignature", cat:"cmdlet", note:"The same cmdlet from an earlier lesson, checking a file's actual current signature status, independent of whatever step 2 reported."},
+{text:"'ScriptingMOL\\ScriptingMOL.psm1'", cat:"value", note:"The module file just signed in step 2."}
+],
+output: "SignerCertificate                        Status                                    StatusMessage\n------------------                       ------                                    -------------\nF6E5D4C3B2A1...                          Valid                                     Signature verified.",
+order: "This is last, an independent confirmation rather than just trusting step 2's own immediate report, exactly the same 'check directly, don't just trust' habit from the earlier lesson checking the unsigned gist script.",
+notice: [
+{field:"Status: Valid, StatusMessage: Signature verified.", note:"An independent, explicit confirmation, not just re-displaying what step 2 already claimed, closing the loop on genuine trust rather than assumed trust."}
+],
+distractor: {
+name: "Trusting step 2's own output as sufficient confirmation",
+why: "A signing operation reporting apparent success doesn't independently rule out a certificate issue, expiration, or revocation. A separate, independent check with Get-AuthenticodeSignature is the real confirmation.",
+better: "Better fit for: never as the only confirmation, an independent check afterward costs nothing and removes any doubt."
+},
+concepts: [
+{term: "Independently verifying a signature", explain: "Checking a signature's status with Get-AuthenticodeSignature after signing, separately from whatever the signing operation itself reported, is the genuine confirmation that a signature is actually valid, not merely present."}
+]
+}
+]
+};
+PSLabInit(LESSON);
+</script>
+</body>
+</html>

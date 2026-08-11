@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Advanced 4: Adding Logic and Loops</title>
+<link rel="stylesheet" href="../assets/styles.css">
+</head>
+<body>
+<div class="page">
+<a class="back-link" href="../index.html">&larr; Back to curriculum</a>
+<h1>Advanced 4 &middot; Ch 23: Adding logic and loops</h1>
+<div id="app"></div>
+</div>
+<script src="../assets/engine.js"></script>
+<script>
+var LESSON = {
+title: "Advanced 4",
+request: "I need this to check each of our five servers and print a message for each one, saying whether it's reachable or not. Then, separately, keep checking WEB03 specifically, over and over, until it actually comes back online, don't just check once and give up.",
+completeMessage: "You used foreach to walk the fixed list of five servers with per-item logic, an If/Else, inside the loop, then switched to a while loop for the open-ended second half, since you don't know in advance how many times it'll take for WEB03 to come back. Picking the loop that matches the shape of the problem is the whole point of this chapter.",
+nextHref: "advanced-05-error-handling.html",
+hubHref: "../index.html",
+steps: [
+{
+title: "Step 1 of 3 - check each server, printing a message for each",
+task: "Loop through all five servers and print a message for each one, reachable or not.",
+prefill: "",
+chips: [
+{text:"foreach ($server in $servers)", hint:"A scripting-language loop construct, walks through a known, fixed collection one item at a time."},
+{text:"{ if (Test-Connection $server -Count 1 -Quiet) { \"$server is reachable\" } else { \"$server is NOT reachable\" } }", hint:"If/Else inside the loop body, deciding which message to print for each server."}
+],
+check: function(c){ return /foreach\s*\(/i.test(c) && /\$servers/i.test(c) && /if\s*\(/i.test(c) && /test-connection/i.test(c); },
+misses: [
+{test: function(c){ return /foreach-object/i.test(c) && /\$servers/i.test(c) && !/foreach\s*\(/i.test(c); }, output: "(works about the same here, but ForEach-Object expects piped input, $servers | ForEach-Object, not $servers passed directly in parentheses)", note: "ForEach-Object is a pipeline cmdlet, it expects objects piped into it, not a collection handed to it directly. The foreach (...) construct is the scripting-language keyword for looping over a known collection, and reads more naturally for a script body rather than a single pipeline."}
+],
+hint: "foreach ($server in $servers) { if (Test-Connection $server -Count 1 -Quiet) { \"$server is reachable\" } else { \"$server is NOT reachable\" } }",
+tokens: [
+{text:"foreach", cat:"cmdlet", note:"A scripting-language loop keyword, walks through every item in a known collection, one at a time."},
+{text:"($server in $servers)", cat:"param", note:"$server holds the current item each time through the loop; $servers is the full list being walked."},
+{text:"if (Test-Connection $server -Count 1 -Quiet)", cat:"value", note:"Tests reachability for the current server, -Quiet returns a simple true/false instead of detailed ping output."},
+{text:"{ \"$server is reachable\" } else { \"$server is NOT reachable\" }", cat:"value", note:"Different message depending on whether the test succeeded."}
+],
+output: "WEB01 is reachable\nWEB02 is reachable\nWEB03 is NOT reachable\nWEB04 is reachable\nWEB05 is reachable",
+order: "This runs first because it's a known, fixed list, exactly what foreach is built for, five known items, checked once each.",
+notice: [
+{field:"WEB03 is NOT reachable", note:"The one server that will matter for step 2's open-ended retry loop."}
+],
+distractor: {
+name: "ForEach-Object instead of foreach",
+why: "ForEach-Object is a pipeline cmdlet expecting piped input ($servers | ForEach-Object {...}), not a collection passed directly. The foreach (...) keyword is the scripting-language construct built for walking a known collection directly in a script body.",
+better: "Better fit for: when you're already mid-pipeline and want to act on each object flowing through it, rather than starting fresh with a known collection."
+},
+concepts: [
+{term: "foreach vs ForEach-Object", explain: "foreach (...) is a scripting-language keyword for looping over a known collection directly. ForEach-Object is a pipeline cmdlet expecting piped input. Both loop per-item, but they fit different situations."}
+]
+},
+{
+title: "Step 2 of 3 - retry until it's actually back",
+task: "Now keep checking WEB03 specifically, repeating until it actually comes back online, not just once.",
+prefill: "",
+chips: [
+{text:"while (-not (Test-Connection WEB03 -Count 1 -Quiet))", hint:"Keeps looping as long as the condition is true, here, as long as WEB03 is still unreachable."},
+{text:"{ Start-Sleep -Seconds 30 }", hint:"Waits between each retry instead of hammering the check nonstop."}
+],
+check: function(c){ return /while\s*\(/i.test(c) && /test-connection/i.test(c) && /web03/i.test(c); },
+misses: [
+{test: function(c){ return /foreach\s*\(/i.test(c) && /web03/i.test(c) && !/while/i.test(c); }, output: "(a foreach loop only runs once per item in a fixed collection, it has no concept of 'keep trying until this becomes true')", note: "foreach walks a known, fixed collection exactly once through. There's no fixed number of retries here, you genuinely don't know how many attempts it'll take for WEB03 to come back. while keeps looping based on a condition, exactly what an open-ended retry needs."}
+],
+hint: "while (-not (Test-Connection WEB03 -Count 1 -Quiet)) { Start-Sleep -Seconds 30 }, looping until the condition, WEB03 responding, finally becomes true.",
+tokens: [
+{text:"while", cat:"cmdlet", note:"Loops for as long as its condition stays true, with no fixed number of iterations decided in advance."},
+{text:"(-not (Test-Connection WEB03 -Count 1 -Quiet))", cat:"param", note:"The loop condition: keep going as long as WEB03 is still NOT reachable."},
+{text:"{ Start-Sleep -Seconds 30 }", cat:"value", note:"Waits between retries, so the loop isn't hammering the check constantly."}
+],
+output: "(looping silently every 30 seconds... WEB03 becomes reachable on the 4th check, loop exits)",
+order: "This comes after the one-time check in step 1, using a different loop entirely because this problem has a genuinely unknown number of iterations, exactly what while is built for.",
+notice: [
+{field:"No fixed number of attempts", note:"This is exactly why while, not foreach, fits here, the loop naturally continues until its condition becomes false, however long that takes."}
+],
+distractor: {
+name: "foreach over a fixed number of retry attempts",
+why: "Forces picking an arbitrary retry count ahead of time, 5 tries, 10 tries, whatever. If WEB03 takes longer than that guess, the loop gives up even though the server might come back moments later. while keeps going based on the actual condition, not a guessed count.",
+better: "Better fit for: when you genuinely do want a hard cap on retries, sometimes combined with while for a 'retry until success or N attempts' pattern."
+},
+concepts: [
+{term: "while loops", explain: "Repeats a block of code for as long as a condition remains true, with no predetermined number of iterations. The right tool whenever 'keep trying until something becomes true' matters more than 'do this exactly N times.'"}
+]
+},
+{
+title: "Step 3 of 3 - confirm it's really back",
+task: "Once the while loop exits, confirm WEB03 is actually reachable now.",
+prefill: "",
+chips: [
+{text:"Test-Connection WEB03 -Count 1", hint:"A real check, without -Quiet this time, to see the actual response details."}
+],
+check: function(c){ return /test-connection/i.test(c) && /web03/i.test(c); },
+misses: [],
+hint: "Test-Connection WEB03 -Count 1, confirming directly what caused the while loop in step 2 to finally exit.",
+tokens: [
+{text:"Test-Connection", cat:"cmdlet", note:"Checks reachability, same cmdlet used inside the while condition in step 2."},
+{text:"WEB03", cat:"value", note:"Same target."},
+{text:"-Count", cat:"param", note:"How many ping attempts to send."},
+{text:"1", cat:"value", note:"Just one, enough to confirm."}
+],
+output: "Destination: WEB03\nAddress: 10.0.0.23\nStatus: Success\nRoundtripTime: 12ms",
+order: "This is last, a direct real-world confirmation that the while loop's exit actually corresponds to WEB03 being reachable again, not just an assumption.",
+notice: [
+{field:"Status: Success", note:"Confirms concretely that the retry loop's exit condition genuinely matched reality."}
+],
+distractor: {
+name: "Trusting that the loop exiting means it's fixed, without checking",
+why: "The loop exiting does mean the condition became true, but a direct confirmation costs nothing and rules out any doubt about a flaky, momentary response.",
+better: "Better fit for: never skipping this in a real troubleshooting scenario, though harmless to skip in a lesson once the logic is understood."
+},
+concepts: [
+{term: "Confirming after a loop exits", explain: "A while loop's exit already implies its condition became true, but re-checking directly afterward is cheap and removes any doubt, especially useful right after an automated retry."}
+]
+}
+]
+};
+PSLabInit(LESSON);
+</script>
+</body>
+</html>

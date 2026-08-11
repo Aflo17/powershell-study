@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Expert 12: An Introduction to Source Control with Git</title>
+<link rel="stylesheet" href="../assets/styles.css">
+</head>
+<body>
+<div class="page">
+<a class="back-link" href="../index.html">&larr; Back to curriculum</a>
+<h1>Expert 12 &middot; Book 2, Ch 19: An introduction to source control with Git</h1>
+<div id="app"></div>
+</div>
+<script src="../assets/engine.js"></script>
+<script>
+var LESSON = {
+title: "Expert 12",
+request: "The ScriptingMOL module folder is just sitting there with no history at all, if something breaks next month, there's no way to see what changed or roll it back. Turn it into a real Git repository, get the current working version committed as a real snapshot, and make a small change so I can see the actual difference tracked afterward.",
+completeMessage: "You initialized a real Git repository instead of leaving the folder as untracked files, staged and committed the current working version as an actual recorded snapshot, and made a change that Git could then show clearly as a tracked diff. That's the actual value of source control: not just backup, a real, inspectable history of what changed and when.",
+nextHref: "expert-13-pester.html",
+hubHref: "../index.html",
+steps: [
+{
+title: "Step 1 of 3 - initialize the repository",
+task: "Turn the ScriptingMOL folder into an actual Git repository.",
+prefill: "",
+chips: [
+{text:"git init", hint:"Initializes a new, empty Git repository in the current folder, the first step before anything can be tracked."}
+],
+check: function(c){ return /git init/i.test(c); },
+misses: [
+{test: function(c){ return /git commit/i.test(c) && !/git init/i.test(c); }, output: "fatal: not a git repository (or any of the parent directories): .git", note: "Git needs a repository to actually exist before anything can be committed to it. git init creates that initial, empty repository structure, the required first step before any of the tracking or committing this request needs."}
+],
+hint: "git init, run inside the ScriptingMOL folder, creates the initial, empty repository structure everything else depends on.",
+tokens: [
+{text:"git init", cat:"cmdlet", note:"Creates a new, empty Git repository in the current folder, the required first step."}
+],
+output: "Initialized empty Git repository in C:/.../ScriptingMOL/.git/",
+order: "This runs first, since nothing else, staging, committing, viewing history, is possible until an actual repository exists in this folder.",
+notice: [
+{field:".git folder created", note:"A hidden folder now exists holding the entire repository's history and configuration, invisible in normal file listings but the actual foundation everything else builds on."}
+],
+distractor: {
+name: "git commit before git init",
+why: "Git has no repository to commit anything into yet. Every Git operation depends on a repository already existing in this folder, created first with git init.",
+better: "Better fit for: never as the first command, init always comes before anything else Git-related in a brand new folder."
+},
+concepts: [
+{term: "git init", explain: "Creates a new, empty Git repository in the current folder, represented by a hidden .git subfolder holding all future history and configuration. The required first step before any file can be tracked or committed."}
+]
+},
+{
+title: "Step 2 of 3 - commit the current working version",
+task: "Now stage and commit the current, working version of the module as a real, recorded snapshot.",
+prefill: "",
+chips: [
+{text:"git add .", hint:"Stages every file in the current folder, preparing them to be included in the next commit."},
+{text:"git commit -m \"Initial working version of ScriptingMOL\"", hint:"Actually records the staged files as a permanent snapshot in the repository's history."}
+],
+check: function(c){ return /git add/i.test(c) && /git commit/i.test(c) && /-m/.test(c); },
+misses: [
+{test: function(c){ return /git commit/i.test(c) && !/git add/i.test(c); }, output: "On branch main\nnothing to commit, working tree clean\n(nothing was ever staged, so there's nothing for commit to actually record)", note: "git commit only records whatever's already been staged with git add. Skipping the staging step means there's nothing for commit to actually capture, the working directory stays completely untracked."}
+],
+hint: "git add . stages everything, then git commit -m \"Initial working version of ScriptingMOL\" actually records that snapshot permanently.",
+tokens: [
+{text:"git add .", cat:"cmdlet", note:"Stages all files in the current folder, preparing them for the next commit."},
+{text:"git commit", cat:"cmdlet", note:"Permanently records the staged files as a snapshot in the repository's history."},
+{text:"-m", cat:"param", note:"Attaches a message describing what this snapshot represents."},
+{text:"\"Initial working version of ScriptingMOL\"", cat:"value", note:"A clear, descriptive commit message, future you, or a teammate, will read this later trying to understand the history."}
+],
+output: "[main (root-commit) 4a92f1c] Initial working version of ScriptingMOL\n 2 files changed, 45 insertions(+)\n create mode 100644 ScriptingMOL.psd1\n create mode 100644 ScriptingMOL.psm1",
+order: "This comes right after initializing the repository, actually recording the first real snapshot before anything gets changed further in step 3.",
+notice: [
+{field:"root-commit, 2 files changed", note:"Confirms this is the very first snapshot in the repository's history, both the manifest and the module code captured together."}
+],
+distractor: {
+name: "git commit without staging first",
+why: "Commit only ever records what's already been staged with git add. Without that step, there's nothing tracked for commit to actually snapshot.",
+better: "Better fit for: never on its own, git add and git commit are a required two-step sequence for recording any change."
+},
+concepts: [
+{term: "git add and git commit", explain: "A two-step process: git add stages which changes should be included, git commit actually records them permanently as a snapshot with a descriptive message. Together, this is how a real, inspectable history gets built one recorded change at a time."}
+]
+},
+{
+title: "Step 3 of 3 - make a change and see it tracked",
+task: "Now make a small change to the module, and confirm Git actually shows it as a tracked difference.",
+prefill: "",
+chips: [
+{text:"git diff", hint:"Shows exactly what changed in tracked files since the last commit, line by line."}
+],
+check: function(c){ return /git diff/i.test(c); },
+misses: [],
+hint: "git diff, after making a small edit to ScriptingMOL.psm1, shows exactly what changed since the last commit, line by line.",
+tokens: [
+{text:"git diff", cat:"cmdlet", note:"Shows the exact difference between the working files and the last commit, line by line."}
+],
+output: "diff --git a/ScriptingMOL.psm1 b/ScriptingMOL.psm1\nindex 3f2a1b9..7c8d2e4 100644\n--- a/ScriptingMOL.psm1\n+++ b/ScriptingMOL.psm1\n@@ -12,7 +12,7 @@\n-        Write-Verbose \"Querying $computer...\"\n+        Write-Verbose \"Connecting to $computer, please wait...\"",
+order: "This is last, the actual payoff of the whole lesson: a real, inspectable record of exactly what changed, line by line, made possible only because step 2 committed a known-good starting point to compare against.",
+notice: [
+{field:"- and + lines, exact line-by-line change", note:"This is the concrete value of source control: not just 'something changed', but exactly what, on exactly which line, compared against the last recorded snapshot."}
+],
+distractor: {
+name: "Just comparing the file visually against memory of what it used to say",
+why: "Unreliable and doesn't scale past a tiny change, and impossible at all once more time has passed or more people have touched the file. git diff gives an exact, automatic, line-by-line comparison against the actual last commit.",
+better: "Better fit for: never once a real repository with commit history exists, git diff is strictly better."
+},
+concepts: [
+{term: "git diff", explain: "Shows the exact line-by-line difference between current working files and the last commit, the concrete payoff of maintaining commit history: precise, automatic answers to 'what actually changed', not guesswork."}
+]
+}
+]
+};
+PSLabInit(LESSON);
+</script>
+</body>
+</html>

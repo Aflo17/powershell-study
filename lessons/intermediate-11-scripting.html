@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Intermediate 11: You Call This Scripting?</title>
+<link rel="stylesheet" href="../assets/styles.css">
+</head>
+<body>
+<div class="page">
+<a class="back-link" href="../index.html">&larr; Back to curriculum</a>
+<h1>Intermediate 11 &middot; Ch 19: You call this scripting?</h1>
+<div id="app"></div>
+</div>
+<script src="../assets/engine.js"></script>
+<script>
+var LESSON = {
+title: "Intermediate 11",
+request: "Save that stopped-and-automatic services check we built a few lessons back into an actual .ps1 file so I can just run it instead of retyping it every time. Add a comment at the top so anyone opening it later knows what it does. Then actually run it and deal with whatever happens, I never remember if this machine allows scripts to run.",
+completeMessage: "You saved a working command as a real, commented .ps1 file, then ran into exactly the execution policy wall from chapter 4, and resolved it instead of being stuck. That's the actual finish line of this phase: everything from here on gets written once, saved, and reused, instead of retyped by hand every time.",
+nextHref: "../index.html",
+hubHref: "../index.html",
+steps: [
+{
+title: "Step 1 of 4 - comment the script",
+task: "Start the script file with a comment explaining what it does.",
+prefill: "",
+chips: [
+{text:"#", hint:"Marks the rest of the line as a comment, ignored entirely when the script runs."},
+{text:"Finds services that are stopped but set to start automatically.", hint:"A plain-English description of what the script does."}
+],
+check: function(c){ return /^#/.test(c.trim()); },
+misses: [
+{test: function(c){ return /finds services/i.test(c) && !/^#/.test(c.trim()); }, output: "Finds : The term 'Finds' is not recognized as the name of a cmdlet, function, script file, or operable program.", note: "Without the leading #, PowerShell tries to actually run that plain-English line as a command, and fails immediately, since 'Finds' isn't a real cmdlet. A # at the start of a line marks it as a comment, ignored entirely when the script runs."}
+],
+hint: "Start the line with #, then a plain-English description. Anything after # on that line is a comment, never executed.",
+tokens: [
+{text:"#", cat:"pipe", note:"Marks everything after it on the same line as a comment. PowerShell skips it entirely when running the script."},
+{text:"Finds services that are stopped but set to start automatically.", cat:"value", note:"Plain text, purely for a human reading the file later, never executed."}
+],
+output: "(nothing runs, the line is skipped entirely, exactly as intended for a comment)",
+order: "This goes first in the file, on purpose, so anyone opening the script sees what it's for before reading a single line of actual code.",
+notice: [
+{field:"# at the very start of the line", note:"This is what tells PowerShell to treat the whole line as a comment, not a command to execute."}
+],
+distractor: {
+name: "Plain text with no # at all",
+why: "Without the #, PowerShell treats that line as an actual command to run, and fails immediately since it isn't a real cmdlet name.",
+better: "Better fit for: never, plain descriptive text always needs a # in front of it to become a comment instead of a broken command."
+},
+concepts: [
+{term: "Comments with #", explain: "Anything after a # on a line is ignored when a script runs. Used to explain what a script does, or leave notes for whoever reads it later, including yourself in six months."}
+]
+},
+{
+title: "Step 2 of 4 - run it from its own folder",
+task: "Now actually run the saved script, Check-Services.ps1, sitting in your current folder.",
+prefill: "",
+chips: [
+{text:".\\Check-Services.ps1", hint:"The .\\ prefix tells PowerShell explicitly to run a script from the current folder."},
+{text:"Check-Services.ps1", hint:"Without the .\\ prefix, PowerShell won't run a script from the current folder by name alone, a deliberate safety measure."}
+],
+check: function(c){ return /\.\\check-services\.ps1/i.test(c); },
+misses: [
+{test: function(c){ return /^check-services\.ps1$/i.test(c.trim()); }, output: "The term 'Check-Services.ps1' is not recognized as the name of a cmdlet, function, script file, or operable program.", note: "PowerShell deliberately won't run a script from the current folder just by typing its bare filename, unlike cmdlets. The .\\ prefix explicitly says 'run this from right here,' a safety measure against accidentally running a same-named script from somewhere unexpected."}
+],
+hint: "Type .\\Check-Services.ps1, the .\\ prefix explicitly tells PowerShell to run the script sitting in your current folder.",
+tokens: [
+{text:".\\", cat:"param", note:"Explicitly means 'the current folder.' Required before a script filename, unlike cmdlets, which are found automatically."},
+{text:"Check-Services.ps1", cat:"value", note:"The saved script file being run."}
+],
+output: "(execution of scripts is disabled on this system, see about_Execution_Policies)",
+order: "This comes right after saving and commenting the script, the natural next step, actually running it, is where this particular machine's execution policy immediately gets in the way.",
+notice: [
+{field:".\\ required", note:"A deliberate PowerShell safety habit: scripts in the current folder must be referenced explicitly with .\\, never run just by typing their bare name."},
+{field:"execution of scripts is disabled", note:"This is the same execution policy concept from an earlier lesson, showing up again now that there's an actual script file to run."}
+],
+distractor: {
+name: "Check-Services.ps1 with no .\\ prefix",
+why: "PowerShell won't run a script from the current folder just by its bare filename, unlike a cmdlet. This is a deliberate safety measure, preventing an unexpected same-named script somewhere else on the path from running unintentionally.",
+better: "Better fit for: never for a script in your current folder, always use .\\ explicitly."
+},
+concepts: [
+{term: "The .\\ prefix", explain: "Explicitly means 'right here, in the current folder.' Required to run a local script by filename, unlike cmdlets which PowerShell finds automatically without any prefix."}
+]
+},
+{
+title: "Step 3 of 4 - deal with the execution policy",
+task: "The script wouldn't run because of execution policy. Check what it's currently set to.",
+prefill: "",
+chips: [
+{text:"Get-ExecutionPolicy", hint:"Shows the currently effective policy, exactly the cmdlet used back in chapter 4."},
+{text:"Set-ExecutionPolicy RemoteSigned", hint:"Would change it, but jumping straight to changing something without checking what it currently is first isn't the right first move."}
+],
+check: function(c){ return /get-executionpolicy/i.test(c); },
+misses: [
+{test: function(c){ return /set-executionpolicy/i.test(c) && !/get-executionpolicy/i.test(c); }, output: "(changes the policy, but you didn't first confirm what it actually was, or whether changing it needed elevated permissions on this machine)", note: "That changes the policy, but skips checking what it currently is first, and on some machines changing it requires administrator rights you may not have expected to need. Get-ExecutionPolicy, the same habit from chapter 4, confirms the current state before touching anything."}
+],
+hint: "Get-ExecutionPolicy, the same cmdlet from chapter 4, confirms exactly what's blocking the script before deciding what to do about it.",
+tokens: [
+{text:"Get-ExecutionPolicy", cat:"cmdlet", note:"Reports the currently effective execution policy, same cmdlet introduced back in chapter 4."}
+],
+output: "Restricted",
+order: "This directly calls back to chapter 4, confirming the actual current policy before deciding how to change it, rather than guessing.",
+notice: [
+{field:"Restricted", note:"The default on many machines, blocks all script execution entirely, exactly why the .ps1 file failed to run in step 2."}
+],
+distractor: {
+name: "Set-ExecutionPolicy without checking first",
+why: "Works, but skips confirming the actual current state first. On some machines, changing the policy also needs administrator rights you may not have realized you'd need until the command failed.",
+better: "Better fit for: once you've already confirmed the current policy and know exactly what change is needed."
+},
+concepts: [
+{term: "Restricted execution policy", explain: "The default on many Windows machines: no scripts run at all, only interactive commands. This is exactly why a saved .ps1 file can fail even though typing the same commands directly at the prompt works fine."}
+]
+},
+{
+title: "Step 4 of 4 - fix it and run the script for real",
+task: "Now actually resolve the policy issue and get the script running.",
+prefill: "",
+chips: [
+{text:"Set-ExecutionPolicy", hint:"Changes the policy."},
+{text:"RemoteSigned", hint:"A common, safer middle ground: local scripts run freely, downloaded ones need a trusted signature."},
+{text:"-Scope CurrentUser", hint:"Applies just to your account, no administrator rights required, same pattern as installing a module for CurrentUser only."}
+],
+check: function(c){ return /set-executionpolicy/i.test(c) && /remotesigned/i.test(c); },
+misses: [
+{test: function(c){ return /set-executionpolicy/i.test(c) && /unrestricted/i.test(c); }, output: "(works, but Unrestricted allows every script to run, including untrusted downloaded ones, with no signature check at all)", note: "Unrestricted removes all script safety checks entirely, even for scripts downloaded from the internet. RemoteSigned is the more common, safer middle ground: your own local scripts run freely, only ones downloaded from elsewhere need a trusted digital signature."}
+],
+hint: "Set-ExecutionPolicy RemoteSigned -Scope CurrentUser, a safer middle ground than Unrestricted, and scoped to your account so it doesn't need administrator rights.",
+tokens: [
+{text:"Set-ExecutionPolicy", cat:"cmdlet", note:"Changes the execution policy, from chapter 4."},
+{text:"RemoteSigned", cat:"value", note:"Local scripts run freely, scripts downloaded from the internet need a trusted digital signature first."},
+{text:"-Scope", cat:"param", note:"Controls how broadly the change applies."},
+{text:"CurrentUser", cat:"value", note:"Just your account, no administrator rights needed, unlike changing the machine-wide default."}
+],
+output: "(policy updated to RemoteSigned for CurrentUser)\n\nFinds services that are stopped but set to start automatically.\n\nStatus   Name       StartType\n------   ----       ---------\nStopped  BITS       Automatic",
+order: "This is the final step because it resolves exactly what step 3 diagnosed, and finally lets the commented, saved script from steps 1 and 2 actually run end to end.",
+notice: [
+{field:"Comment line prints, then real results", note:"Confirms the whole saved script, comment and all, ran successfully this time, closing the loop from step 1 through step 4."}
+],
+distractor: {
+name: "Set-ExecutionPolicy Unrestricted",
+why: "Also fixes the immediate problem, but removes every safety check entirely, including for scripts downloaded from the internet with no verification at all. RemoteSigned keeps a meaningful safety line for anything not written locally.",
+better: "Better fit for: a fully controlled, isolated test environment, not a real working machine."
+},
+concepts: [
+{term: "RemoteSigned", explain: "A common, safer execution policy: scripts written locally run without restriction, but anything downloaded from the internet needs a trusted digital signature first. A practical middle ground between Restricted and Unrestricted."}
+]
+}
+]
+};
+PSLabInit(LESSON);
+</script>
+</body>
+</html>

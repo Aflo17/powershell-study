@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Intermediate 9: Input and Output</title>
+<link rel="stylesheet" href="../assets/styles.css">
+</head>
+<body>
+<div class="page">
+<a class="back-link" href="../index.html">&larr; Back to curriculum</a>
+<h1>Intermediate 9 &middot; Ch 17: Input and output</h1>
+<div id="app"></div>
+</div>
+<script src="../assets/engine.js"></script>
+<script>
+var LESSON = {
+title: "Intermediate 9",
+request: "Stop hardcoding the computer name in these scripts, prompt me for it instead. While it's running, print a status message to the screen so I know it's working, but that message shouldn't end up mixed into the actual results if I pipe them somewhere else. Then get the real service data, and prove the status message didn't sneak into it.",
+completeMessage: "You prompted for input instead of hardcoding it, used Write-Host for a status message that only goes to the screen, kept the actual data flowing cleanly down the pipeline, and proved the two never mixed. That separation, screen messages versus real pipeline output, is the core idea of this chapter.",
+nextHref: "intermediate-10-sessions.html",
+hubHref: "../index.html",
+steps: [
+{
+title: "Step 1 of 4 - prompt for input",
+task: "Prompt for a computer name instead of hardcoding one.",
+prefill: "",
+chips: [
+{text:"$computer", hint:"Where the entered value will be stored."},
+{text:"=", hint:"Assignment."},
+{text:"Read-Host", hint:"Prompts the user and returns whatever they typed as a plain string."},
+{text:"-Prompt \"Enter computer name\"", hint:"The text shown to the user when asking for input."}
+],
+check: function(c){ return /\$computer\s*=\s*read-host/i.test(c); },
+misses: [
+{test: function(c){ return /\$computer\s*=\s*['"]WEB01['"]/i.test(c); }, output: "(no prompt, WEB01 hardcoded directly into the script)", note: "That's exactly the hardcoding the request was trying to move away from. Read-Host prompts for a value at run time instead, so the same script works against any machine without editing it."}
+],
+hint: "$computer = Read-Host -Prompt \"Enter computer name\" prompts at run time and stores whatever gets typed.",
+tokens: [
+{text:"$computer", cat:"value", note:"Where the typed value gets stored, for reuse later in the script."},
+{text:"=", cat:"param", note:"Assignment."},
+{text:"Read-Host", cat:"cmdlet", note:"Prompts interactively and returns the typed text as a plain string."},
+{text:"-Prompt", cat:"param", note:"The message shown when asking for input."},
+{text:"\"Enter computer name\"", cat:"value", note:"The actual prompt text displayed."}
+],
+output: "Enter computer name: WEB03",
+order: "This runs first because everything else in the script depends on knowing which machine to target, gathered fresh each run instead of baked in.",
+notice: [
+{field:"WEB03 typed at the prompt", note:"Now stored in $computer, ready to be reused anywhere the script needs a target machine."}
+],
+distractor: {
+name: "Hardcoding the computer name",
+why: "Works exactly once, for exactly one machine. Any other target means editing the script itself. Read-Host makes the same script reusable against any machine without changes.",
+better: "Better fit for: a script you're certain will only ever target one specific, unchanging machine."
+},
+concepts: [
+{term: "Read-Host", explain: "Prompts interactively and returns whatever the user types as a plain string. The standard way to gather input at run time instead of hardcoding values into a script."}
+]
+},
+{
+title: "Step 2 of 4 - a status message that stays off the pipeline",
+task: "Print a status message to the screen, one that won't end up mixed into piped results later.",
+prefill: "",
+chips: [
+{text:"Write-Host", hint:"Writes directly to the screen only, never enters the pipeline, so it can't accidentally get piped, captured, or exported."},
+{text:"\"Checking $computer...\"", hint:"The status message, using the variable from step 1."},
+{text:"Write-Output", hint:"Sends its text into the pipeline itself, which is exactly what would pollute later piped results."}
+],
+check: function(c){ return /write-host/i.test(c) && /checking/i.test(c); },
+misses: [
+{test: function(c){ return /write-output/i.test(c) && /checking/i.test(c) && !/write-host/i.test(c); }, output: "Checking WEB03...\n\n(if this were piped into Export-Csv, that status line would end up as a row in the file)", note: "Write-Output sends text into the actual pipeline. If this were piped further, like into Export-Csv, that status message would end up mixed into the real data instead of staying purely on screen. Write-Host bypasses the pipeline entirely, screen only."}
+],
+hint: "Write-Host \"Checking $computer...\" prints straight to the screen, bypassing the pipeline entirely so it can never get mixed into real data.",
+tokens: [
+{text:"Write-Host", cat:"cmdlet", note:"Writes directly to the console, never enters the pipeline, so later commands piping this script's output never see it."},
+{text:"\"Checking $computer...\"", cat:"value", note:"The message text, with the variable from step 1 embedded directly inside the string."}
+],
+output: "Checking WEB03...",
+order: "This comes after gathering input and before the real query, giving visible feedback that something is happening, without risking contaminating whatever comes down the pipeline next.",
+notice: [
+{field:"$computer inside the string", note:"PowerShell substitutes the variable's value directly into double-quoted strings, so this reads 'Checking WEB03...' at run time."}
+],
+distractor: {
+name: "Write-Output for the status message",
+why: "Write-Output sends its text straight into the pipeline. If this script's output ever got piped further, into Export-Csv, for example, that status message would end up mixed in as if it were real data.",
+better: "Better fit for: the actual result data itself, exactly what step 3 produces next, meant to flow down the pipeline."
+},
+concepts: [
+{term: "Write-Host vs the pipeline", explain: "Write-Host writes straight to the console and never touches the pipeline, useful for status messages, progress notes, or anything meant purely for a human watching the screen, not for downstream commands."}
+]
+},
+{
+title: "Step 3 of 4 - get the real data",
+task: "Now actually query the service data from that computer, using the variable gathered in step 1.",
+prefill: "",
+chips: [
+{text:"Get-Service", hint:"The real query."},
+{text:"-ComputerName $computer", hint:"Uses the variable from step 1 instead of a hardcoded name."},
+{text:"-Name wuauserv", hint:"The specific service being checked."}
+],
+check: function(c){ return /get-service/i.test(c) && /\$computer/i.test(c) && /wuauserv/i.test(c); },
+misses: [
+{test: function(c){ return /get-service/i.test(c) && /web03/i.test(c) && !/\$computer/i.test(c); }, output: "(works this one time, but hardcodes WEB03 right back into the script, undoing the point of step 1's prompt)", note: "That works right now, but it types the machine name directly again instead of using $computer, undoing the entire reason step 1 prompted for it in the first place."}
+],
+hint: "Get-Service -ComputerName $computer -Name wuauserv, reusing the variable gathered back in step 1 instead of typing the machine name again.",
+tokens: [
+{text:"Get-Service", cat:"cmdlet", note:"The actual query, producing real pipeline output this time, unlike step 2's screen-only message."},
+{text:"-ComputerName", cat:"param", note:"Which machine to query."},
+{text:"$computer", cat:"value", note:"The variable gathered via Read-Host in step 1, reused here instead of a hardcoded name."},
+{text:"-Name", cat:"param", note:"Which specific service."},
+{text:"wuauserv", cat:"value", note:"Windows Update service."}
+],
+output: "Status   Name       DisplayName      PSComputerName\n------   ----       -----------      --------------\nRunning  wuauserv   Windows Update   WEB03",
+order: "This is the real data-producing step, coming after the input was gathered and the status message printed, and it's this output, not step 2's message, that will actually flow down a pipeline.",
+notice: [
+{field:"$computer reused, not retyped", note:"Confirms the whole point of step 1's prompt: gather once, reuse everywhere the script needs that value."}
+],
+distractor: {
+name: "Typing the computer name again instead of $computer",
+why: "Works for this one run, but hardcodes the machine name right back into the script, exactly what Read-Host in step 1 was meant to eliminate.",
+better: "Better fit for: never, once you've prompted for a value, reuse the variable everywhere that value is needed."
+},
+concepts: [
+{term: "Real pipeline output", explain: "Cmdlet results like Get-Service's output are genuine pipeline data, unlike Write-Host's screen-only messages. This is the data that would actually flow into something like Export-Csv or Where-Object further down a pipeline."}
+]
+},
+{
+title: "Step 4 of 4 - prove the status message stayed separate",
+task: "Now prove the status message from step 2 never actually mixed into the real result data.",
+prefill: "",
+chips: [
+{text:"Get-Service -ComputerName $computer -Name wuauserv", hint:"The same real query from step 3."},
+{text:"Export-Csv -Path result.csv -NoTypeInformation", hint:"If Write-Host's message had entered the pipeline, it would show up as a stray row here. It won't, because Write-Host never touches the pipeline."}
+],
+check: function(c){ return /get-service/i.test(c) && /\$computer/i.test(c) && /export-csv/i.test(c); },
+misses: [],
+hint: "Pipe the real Get-Service query from step 3 into Export-Csv. If Write-Host had polluted the pipeline, a stray row would show up here, it won't.",
+tokens: [
+{text:"Get-Service", cat:"cmdlet", note:"Same real query from step 3."},
+{text:"-ComputerName $computer", cat:"param", note:"Same target."},
+{text:"-Name wuauserv", cat:"param", note:"Same service."},
+{text:"Export-Csv", cat:"cmdlet", note:"Writes the piped data to a file, exactly the kind of downstream command that would expose any accidental pollution from Write-Host."},
+{text:"-Path result.csv", cat:"value", note:"Output file."},
+{text:"-NoTypeInformation", cat:"param", note:"Skips a .NET type header PowerShell would otherwise add to the CSV."}
+],
+output: "(result.csv written, containing exactly one data row for wuauserv, no 'Checking WEB03...' text anywhere in the file)",
+order: "This closes the loop on the request's core concern, proving directly, not just asserting, that the screen-only status message from step 2 genuinely never touched the pipeline data being exported here.",
+notice: [
+{field:"No status message in result.csv", note:"Confirms Write-Host output stayed purely on screen the entire time, exactly the separation the request was asking about."}
+],
+distractor: {
+name: "Assuming it's fine without checking",
+why: "The whole request was about proving this separation, not just trusting it. Actually exporting and checking the file is the concrete proof, not an assumption.",
+better: "Better fit for: never here, this is exactly the kind of thing worth verifying once, explicitly."
+},
+concepts: [
+{term: "Write-Host never touches the pipeline", explain: "Confirmed here concretely: Write-Host output never shows up in exported or piped results, because it writes directly to the console and bypasses the pipeline entirely, by design."}
+]
+}
+]
+};
+PSLabInit(LESSON);
+</script>
+</body>
+</html>

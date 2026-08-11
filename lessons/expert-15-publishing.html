@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Expert 15: Publishing Your Script</title>
+<link rel="stylesheet" href="../assets/styles.css">
+</head>
+<body>
+<div class="page">
+<a class="back-link" href="../index.html">&larr; Back to curriculum</a>
+<h1>Expert 15 &middot; Book 2, Ch 22: Publishing your script</h1>
+<div id="app"></div>
+</div>
+<script src="../assets/engine.js"></script>
+<script>
+var LESSON = {
+title: "Expert 15",
+request: "Other teams keep asking us to just email them the ScriptingMOL files directly, that's not sustainable. Publish it somewhere people can actually install it properly with Install-Module, like any other real module. Check it's ready first, then actually publish it, then confirm it's genuinely discoverable afterward.",
+completeMessage: "You checked the module was actually ready, correct manifest, no missing fields, before publishing, pushed it to a real repository instead of emailing files around, and confirmed afterward that it's genuinely discoverable through Find-Module, exactly like any other real, installable module. That's the actual difference between sharing a script and publishing one.",
+nextHref: "expert-16-squashing-bugs.html",
+hubHref: "../index.html",
+steps: [
+{
+title: "Step 1 of 3 - confirm the module is actually ready",
+task: "Before publishing anything, confirm the module's manifest is genuinely valid and complete.",
+prefill: "",
+chips: [
+{text:"Test-ModuleManifest", hint:"The same validation cmdlet from an earlier lesson, worth re-checking specifically before publishing."},
+{text:"-Path 'ScriptingMOL\\ScriptingMOL.psd1'", hint:"The manifest being confirmed ready."}
+],
+check: function(c){ return /test-modulemanifest/i.test(c) && /scriptingmol\.psd1/i.test(c); },
+misses: [
+{test: function(c){ return /publish-module/i.test(c) && !/test-modulemanifest/i.test(c); }, output: "Publish-Module : The specified module 'ScriptingMOL' was not published because the module manifest is missing the required 'Description' key.", note: "Publishing without confirming manifest readiness first means discovering problems only once the publish attempt itself fails. Test-ModuleManifest, the same cmdlet from an earlier lesson, catches exactly this kind of issue before ever attempting to publish."}
+],
+hint: "Test-ModuleManifest -Path 'ScriptingMOL\\ScriptingMOL.psd1', re-checking readiness specifically before publishing, not just trusting it's still fine.",
+tokens: [
+{text:"Test-ModuleManifest", cat:"cmdlet", note:"The same validation cmdlet from an earlier lesson, worth re-running specifically before a real publish attempt."},
+{text:"-Path", cat:"param", note:"Which manifest to check."},
+{text:"'ScriptingMOL\\ScriptingMOL.psd1'", cat:"value", note:"The module's manifest file."}
+],
+output: "ModuleType Version    Name           ExportedCommands\n---------- -------    ----           -----------------\nScript     1.0.0      ScriptingMOL   {Get-MachineInfo}",
+order: "This runs first, confirming genuine readiness before attempting an actual publish, exactly the same discipline as checking a script's help or signature before trusting it, applied here to publishing.",
+notice: [
+{field:"Valid manifest output, no errors", note:"Confirms the module is genuinely ready, before spending effort on an actual publish attempt that could otherwise fail partway through."}
+],
+distractor: {
+name: "Publishing directly without re-checking the manifest first",
+why: "Risks discovering a missing or malformed field only once the actual publish attempt fails, later and more disruptively than catching it with a quick, direct check first.",
+better: "Better fit for: a module you've already re-verified very recently, though a quick recheck immediately before publishing costs almost nothing."
+},
+concepts: [
+{term: "Confirming readiness before publishing", explain: "Publishing a module makes it available for others to discover and install, worth confirming its manifest is genuinely valid and complete first, rather than discovering a problem only once the publish attempt itself fails."}
+]
+},
+{
+title: "Step 2 of 3 - actually publish it",
+task: "Now actually publish the module to a real repository.",
+prefill: "",
+chips: [
+{text:"Publish-Module", hint:"Actually pushes a module to a repository, making it installable by anyone with access."},
+{text:"-Path 'ScriptingMOL'", hint:"The module folder being published."},
+{text:"-Repository InternalGallery", hint:"The team's internal repository, not necessarily the public PowerShell Gallery."}
+],
+check: function(c){ return /publish-module/i.test(c) && /scriptingmol/i.test(c); },
+misses: [
+{test: function(c){ return /copy-item/i.test(c) && /scriptingmol/i.test(c) && !/publish-module/i.test(c); }, output: "(copies the files somewhere, but doesn't register the module with an actual repository, Find-Module and Install-Module won't discover it, exactly the emailing-files problem the request wanted to move past)", note: "Copying files somewhere isn't the same as publishing to a real repository. Find-Module and Install-Module specifically query registered repositories, a plain file copy is invisible to them entirely, essentially the same 'sharing files directly' problem the request wanted to move past."}
+],
+hint: "Publish-Module -Path 'ScriptingMOL' -Repository InternalGallery, actually registering the module with a real, discoverable repository.",
+tokens: [
+{text:"Publish-Module", cat:"cmdlet", note:"Actually pushes a module to a repository, making it genuinely installable via Install-Module, not just copied files."},
+{text:"-Path", cat:"param", note:"Which module folder to publish."},
+{text:"'ScriptingMOL'", cat:"value", note:"The module being published."},
+{text:"-Repository", cat:"param", note:"Which repository to publish to."},
+{text:"InternalGallery", cat:"value", note:"The team's internal repository, a common choice over the public PowerShell Gallery for internal tools."}
+],
+output: "(ScriptingMOL version 1.0.0 published to InternalGallery)",
+order: "This comes right after confirming readiness, actually performing the real publish now that step 1 confirmed there was nothing wrong with the manifest.",
+notice: [
+{field:"Published to InternalGallery, not emailed anywhere", note:"This is the actual substance of the original request, a real, centrally discoverable location instead of files passed around directly."}
+],
+distractor: {
+name: "Copying the module files to a shared network folder",
+why: "Puts the files somewhere reachable, but doesn't register the module with an actual repository. Find-Module and Install-Module query registered repositories specifically, a plain file copy is invisible to them.",
+better: "Better fit for: a genuinely informal, one-off file share, not the real, discoverable publishing the request specifically asked for."
+},
+concepts: [
+{term: "Publish-Module", explain: "Pushes a module to a real, registered repository, making it discoverable through Find-Module and installable through Install-Module, genuinely different from simply copying files somewhere reachable."}
+]
+},
+{
+title: "Step 3 of 3 - confirm it's genuinely discoverable",
+task: "Now confirm the published module is genuinely discoverable, the way any real module would be.",
+prefill: "",
+chips: [
+{text:"Find-Module", hint:"Searches a repository for a module by name, the same discovery habit from an earlier lesson finding the Az module."},
+{text:"-Name ScriptingMOL", hint:"The just-published module."},
+{text:"-Repository InternalGallery", hint:"The specific repository it was published to."}
+],
+check: function(c){ return /find-module/i.test(c) && /scriptingmol/i.test(c); },
+misses: [],
+hint: "Find-Module -Name ScriptingMOL -Repository InternalGallery, the same discovery habit from an earlier lesson, now confirming this module is genuinely findable.",
+tokens: [
+{text:"Find-Module", cat:"cmdlet", note:"The same discovery cmdlet from an earlier lesson finding the Az module, now confirming a module you published yourself."},
+{text:"-Name", cat:"param", note:"Which module to search for."},
+{text:"ScriptingMOL", cat:"value", note:"The just-published module."},
+{text:"-Repository", cat:"param", note:"Which repository to search."},
+{text:"InternalGallery", cat:"value", note:"The specific repository from step 2."}
+],
+output: "Version    Name              Repository         Description\n-------    ----              ----------         -----------\n1.0.0      ScriptingMOL      InternalGallery    Provides Get-MachineInfo for querying basic OS details from remote computers.",
+order: "This is last, the real proof that publishing genuinely worked, someone else, using the exact same Find-Module habit from an earlier lesson, could now discover this module without ever being emailed a file directly.",
+notice: [
+{field:"Description shows the real text written in the manifest lesson", note:"Direct proof this is the same properly documented module built across earlier lessons, now genuinely discoverable by anyone with repository access, not something anyone had to hand them directly."}
+],
+distractor: {
+name: "Just trusting Publish-Module's success message from step 2",
+why: "A publish operation reporting success doesn't independently confirm the module is actually discoverable afterward. Find-Module is the real, independent test that someone else could genuinely find this module on their own.",
+better: "Better fit for: never as the only confirmation, an independent Find-Module check afterward is what proves genuine discoverability."
+},
+concepts: [
+{term: "Find-Module confirms genuine discoverability", explain: "The real proof that publishing worked isn't the publish command's own success message, it's confirming independently, with Find-Module, that anyone else could actually discover this module on their own, exactly like any other real, published module."}
+]
+}
+]
+};
+PSLabInit(LESSON);
+</script>
+</body>
+</html>

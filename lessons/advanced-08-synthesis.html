@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Advanced 8: Never the End</title>
+<link rel="stylesheet" href="../assets/styles.css">
+</head>
+<body>
+<div class="page">
+<a class="back-link" href="../index.html">&larr; Back to curriculum</a>
+<h1>Advanced 8 &middot; Ch 27: Never the end</h1>
+<div id="app"></div>
+</div>
+<script src="../assets/engine.js"></script>
+<script>
+var LESSON = {
+title: "Advanced 8",
+request: "Before we call this phase done, put together one small script that actually uses several things from the last few lessons at once: it should require a computer name instead of assuming one, loop through checking it, and not fall over if that machine's unreachable. Nothing new, just proving it all fits together.",
+completeMessage: "Nothing in this lesson was new, and that's exactly the point. [CmdletBinding()] and Mandatory from chapter 20, a while loop from chapter 23, and Try/Catch with -ErrorAction Stop from chapter 24, all landed in the same handful of lines. That's the real finish line of the Advanced phase: not new syntax, but everything so far actually working together in one script.",
+nextHref: "advanced-09-scripting-environment.html",
+hubHref: "../index.html",
+steps: [
+{
+title: "Step 1 of 3 - require the computer name",
+task: "Start the script by making it require a computer name instead of assuming one, exactly like chapter 20.",
+prefill: "",
+chips: [
+{text:"[CmdletBinding()]", hint:"Required first, unlocking the Mandatory attribute that follows."},
+{text:"param (", hint:"The parameter block."},
+{text:"[Parameter(Mandatory=$True)] [string]$ComputerName", hint:"Forces a value to be supplied, no silent default."},
+{text:")", hint:"Closes the parameter block."}
+],
+check: function(c){ return /\[cmdletbinding\(\)\]/i.test(c) && /mandatory\s*=\s*\$true/i.test(c) && /\$computername/i.test(c); },
+misses: [
+{test: function(c){ return /\$computername\s*=\s*['"]localhost['"]/i.test(c); }, output: "(quietly defaults to localhost again, exactly the assumption chapter 20 moved away from)", note: "A default value brings back exactly the silent assumption chapter 20 was about removing. [CmdletBinding()] plus [Parameter(Mandatory=$True)] forces an explicit value every time instead."}
+],
+hint: "[CmdletBinding()] first, then inside param(), [Parameter(Mandatory=$True)] [string]$ComputerName, no default value, same pattern as chapter 20.",
+tokens: [
+{text:"[CmdletBinding()]", cat:"param", note:"From chapter 20, unlocks parameter attributes like Mandatory."},
+{text:"param (", cat:"cmdlet", note:"The parameter block."},
+{text:"[Parameter(Mandatory=$True)]", cat:"param", note:"Also from chapter 20, forces an explicit value with no silent default."},
+{text:"[string]$ComputerName", cat:"value", note:"The required parameter."},
+{text:")", cat:"cmdlet", note:"Closes the block."}
+],
+output: "(no output yet, this is just the top of the script, the same requirement pattern built in chapter 20)",
+order: "This goes first, establishing what the script needs before any of its actual logic runs.",
+notice: [
+{field:"Nothing new here", note:"This entire step is a direct reuse of chapter 20's pattern, exactly the point of this synthesis lesson."}
+],
+distractor: {
+name: "A default value instead of Mandatory",
+why: "Reintroduces the exact silent assumption chapter 20 specifically moved away from.",
+better: "Better fit for: never here, this phase already established why an explicit value beats a silent default."
+},
+concepts: [
+{term: "Reusing earlier patterns", explain: "Advanced scripting isn't about constantly learning new syntax, it's about combining a small set of well-understood patterns, like this one from chapter 20, into something new."}
+]
+},
+{
+title: "Step 2 of 3 - retry until reachable, without stopping cold",
+task: "Now loop, checking the computer until it's reachable, without letting an unreachable machine crash the script, combining chapters 23 and 24.",
+prefill: "",
+chips: [
+{text:"while (-not (Test-Connection $ComputerName -Count 1 -Quiet -ErrorAction SilentlyContinue))", hint:"The retry loop from chapter 23, with -ErrorAction added so an unreachable host doesn't itself throw mid-condition."},
+{text:"{ Start-Sleep -Seconds 30 }", hint:"Same wait-between-retries pattern from chapter 23."}
+],
+check: function(c){ return /while\s*\(/i.test(c) && /test-connection/i.test(c) && /\$computername/i.test(c); },
+misses: [
+{test: function(c){ return /foreach\s*\(/i.test(c) && /\$computername/i.test(c) && !/while/i.test(c); }, output: "(a foreach loop only runs a fixed number of times, it can't naturally express 'keep trying until reachable')", note: "Same lesson as chapter 23: this is an open-ended retry, not a fixed collection to walk through once. while is the loop that fits, exactly as it did there."}
+],
+hint: "while (-not (Test-Connection $ComputerName -Count 1 -Quiet -ErrorAction SilentlyContinue)) { Start-Sleep -Seconds 30 }, the same retry pattern from chapter 23.",
+tokens: [
+{text:"while", cat:"cmdlet", note:"From chapter 23, the open-ended retry loop."},
+{text:"(-not (Test-Connection $ComputerName -Count 1 -Quiet -ErrorAction SilentlyContinue))", cat:"param", note:"Keeps looping until the target becomes reachable."},
+{text:"{ Start-Sleep -Seconds 30 }", cat:"value", note:"Waits between attempts, same as chapter 23."}
+],
+output: "(looping every 30 seconds, using the exact same while pattern from chapter 23, now with the parameterized $ComputerName from step 1 instead of a hardcoded name)",
+order: "This is the second combined piece, chapter 23's loop pattern now operating on the mandatory parameter from step 1 instead of a name typed directly into the script.",
+notice: [
+{field:"$ComputerName, not a hardcoded name", note:"The exact same while loop from chapter 23, but now genuinely reusable against any machine, thanks to step 1's parameter."}
+],
+distractor: {
+name: "A foreach loop with a fixed retry count",
+why: "Forces guessing a retry count ahead of time, exactly the limitation chapter 23 walked through when comparing foreach against while for this kind of problem.",
+better: "Better fit for: a capped number of attempts, sometimes combined with while for a 'retry until success or N attempts' pattern."
+},
+concepts: [
+{term: "Parameters feeding into loops", explain: "Once a value comes in through a parameter, chapter 20's contribution, it can be used anywhere in the script's logic, including inside a loop's condition, chapter 23's contribution, without hardcoding anything."}
+]
+},
+{
+title: "Step 3 of 3 - query it safely once reachable",
+task: "Once reachable, query it for real, wrapped in Try/Catch so a late failure still doesn't crash the script, exactly like chapter 24.",
+prefill: "",
+chips: [
+{text:"try", hint:"From chapter 24."},
+{text:"{ Get-CimInstance -ComputerName $ComputerName -ClassName Win32_OperatingSystem -ErrorAction Stop }", hint:"-ErrorAction Stop required, same as chapter 24, so a failure here is genuinely catchable."},
+{text:"catch", hint:"Handles a failure gracefully instead of stopping cold."},
+{text:"{ \"Could not query $ComputerName`: $($_.Exception.Message)\" }", hint:"A clear message, same pattern as chapter 24's catch block."}
+],
+check: function(c){ return /try\s*\{/i.test(c) && /catch/i.test(c) && /-erroraction\s+stop/i.test(c) && /\$computername/i.test(c); },
+misses: [
+{test: function(c){ return /get-ciminstance/i.test(c) && /\$computername/i.test(c) && !/try/i.test(c); }, output: "Get-CimInstance : The RPC server is unavailable. (Exception from HRESULT: 0x800706BA)\n(unhandled, exactly the wall of red text chapter 24 was about avoiding)", note: "Same lesson as chapter 24: without Try/Catch and -ErrorAction Stop, a failure here still produces the unhandled wall of red text, even after all the careful work in steps 1 and 2 to get this far reliably."}
+],
+hint: "try { Get-CimInstance -ComputerName $ComputerName -ClassName Win32_OperatingSystem -ErrorAction Stop } catch { \"Could not query $ComputerName: $($_.Exception.Message)\" }, the same pattern from chapter 24.",
+tokens: [
+{text:"try", cat:"cmdlet", note:"From chapter 24."},
+{text:"{ Get-CimInstance -ComputerName $ComputerName ... -ErrorAction Stop }", cat:"value", note:"The mandatory parameter from step 1, now used inside a Try block."},
+{text:"catch", cat:"cmdlet", note:"Handles any failure gracefully."},
+{text:"{ \"Could not query $ComputerName: $($_.Exception.Message)\" }", cat:"value", note:"A clear message, reusing $ComputerName from the parameter, not a hardcoded name."}
+],
+output: "(OS details returned successfully, since the while loop in step 2 already confirmed the machine was reachable first)",
+order: "This is last, the same three chapters landing in one script: a required parameter feeding a retry loop, feeding a safely wrapped final query, each piece exactly as it was taught, just working together now.",
+notice: [
+{field:"Three chapters, one script", note:"CmdletBinding and Mandatory from chapter 20, while from chapter 23, Try/Catch with -ErrorAction Stop from chapter 24. Nothing new, just combined."}
+],
+distractor: {
+name: "Get-CimInstance with no Try/Catch at all",
+why: "Even after the while loop confirms reachability, a machine can still fail moments later, going offline again, or refusing this specific query. Try/Catch protects against that final moment too, exactly chapter 24's point.",
+better: "Better fit for: never skipping this step, reachability and query success are two different things, confirmed separately."
+},
+concepts: [
+{term: "Synthesis over new syntax", explain: "The actual skill this phase built isn't memorizing more commands, it's recognizing which already-known pattern, a parameter, a loop, an error handler, fits a given piece of a problem, and combining them."}
+]
+}
+]
+};
+PSLabInit(LESSON);
+</script>
+</body>
+</html>

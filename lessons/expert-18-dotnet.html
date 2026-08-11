@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Expert 18: Wrapping Up the .NET Framework</title>
+<link rel="stylesheet" href="../assets/styles.css">
+</head>
+<body>
+<div class="page">
+<a class="back-link" href="../index.html">&larr; Back to curriculum</a>
+<h1>Expert 18 &middot; Book 2, Ch 25: Wrapping up the .NET Framework</h1>
+<div id="app"></div>
+</div>
+<script src="../assets/engine.js"></script>
+<script>
+var LESSON = {
+title: "Expert 18",
+request: "I need to generate a handful of strong, random passwords for new accounts, and there's no cmdlet built in that does this directly. I know .NET has classes for this kind of thing even without a dedicated cmdlet, find the right one and wrap it in something reusable instead of writing a workaround from scratch.",
+completeMessage: "You went looking for a .NET class instead of assuming there was no way to do this without writing complicated string logic from scratch, and wrapped it in a small, reusable function instead of leaving raw .NET syntax scattered wherever it was needed. That's the real value of this chapter: PowerShell sits directly on top of .NET, and reaching underneath it is a completely normal move when no cmdlet covers something.",
+nextHref: "expert-19-sql-storage.html",
+hubHref: "../index.html",
+steps: [
+{
+title: "Step 1 of 3 - find the right .NET class",
+task: "Before writing anything, find the actual .NET class capable of generating cryptographically strong random values.",
+prefill: "",
+chips: [
+{text:"[System.Web.Security.Membership]", hint:"A .NET class with a built-in method specifically for generating random passwords."},
+{text:"::GeneratePassword(16, 4)", hint:"Calling a static method directly on the class, 16 characters long, at least 4 non-alphanumeric characters."}
+],
+check: function(c){ return /\[system\.web\.security\.membership\]/i.test(c) && /generatepassword/i.test(c); },
+misses: [
+{test: function(c){ return /-join\s*\(/i.test(c) && /get-random/i.test(c) && !/generatepassword/i.test(c); }, output: "(works, technically, but requires manually building a character set, looping, and joining results, real, workable code, just reinventing something a purpose-built .NET method already does directly)", note: "Building a random password manually with Get-Random and -join works, but it's real effort spent reinventing something a single .NET method already does directly and more reliably. Checking for an existing .NET class first, before writing custom logic, is the actual habit this chapter is about."}
+],
+hint: "[System.Web.Security.Membership]::GeneratePassword(16, 4), a .NET class with a method built specifically for this exact purpose.",
+tokens: [
+{text:"[System.Web.Security.Membership]", cat:"value", note:"A .NET class, accessed directly from PowerShell using square-bracket syntax, exactly the same syntax used earlier for [Security.Principal.WindowsPrincipal]."},
+{text:"::GeneratePassword(16, 4)", cat:"value", note:"Calling a static method directly on the class: 16 characters long, with at least 4 non-alphanumeric characters."}
+],
+output: "K7#mQ2$xR9!vL4@p",
+order: "This runs first, finding an existing .NET solution before writing any custom logic, exactly the discipline this chapter recommends before assuming something needs to be built entirely from scratch.",
+notice: [
+{field:"A genuinely random, complex password, from one line", note:"Confirms the .NET class handles the real complexity, character variety, true randomness, that manually rolling your own logic would have to carefully reimplement."}
+],
+distractor: {
+name: "Manually building a password with Get-Random and a custom character set",
+why: "Works, but requires carefully building a character set, looping the right number of times, and joining the results correctly, real effort spent reinventing something a single, purpose-built .NET method already does directly.",
+better: "Better fit for: when no existing .NET class or cmdlet actually covers the specific thing you need, genuinely necessary in that case."
+},
+concepts: [
+{term: "Reaching into .NET directly", explain: "PowerShell is built directly on top of .NET, and any .NET class can be accessed with square-bracket syntax, [ClassName]::Method(), even when no PowerShell cmdlet wraps it. Worth checking for before writing custom logic to solve something from scratch."}
+]
+},
+{
+title: "Step 2 of 3 - wrap it in a reusable function",
+task: "Now wrap the .NET call in a small, reusable function instead of leaving raw .NET syntax scattered wherever it's needed.",
+prefill: "",
+chips: [
+{text:"function New-RandomPassword {", hint:"A small wrapper function, Verb-Noun named."},
+{text:"param ([int]$Length = 16, [int]$NonAlphanumericCount = 4)", hint:"Parameterized, instead of the raw .NET call's fixed numbers."},
+{text:"[System.Web.Security.Membership]::GeneratePassword($Length, $NonAlphanumericCount)", hint:"The same underlying .NET call, now driven by real parameters."},
+{text:"}", hint:"Closes the function."}
+],
+check: function(c){ return /function\s+new-randompassword/i.test(c) && /generatepassword/i.test(c) && /\$length/i.test(c); },
+misses: [
+{test: function(c){ return /generatepassword\(16,\s*4\)/i.test(c) && !/function/i.test(c); }, output: "(the raw .NET call from step 1, copy-pasted wherever a password is needed, with hardcoded 16 and 4 values repeated everywhere, and no single place to change the defaults later)", note: "Copy-pasting the raw .NET syntax everywhere it's needed means hardcoded values repeated in multiple places, and no single spot to change a default later. Wrapping it in a small, parameterized function is what actually makes it reusable, exactly like every tool built across this whole phase."}
+],
+hint: "function New-RandomPassword { param ([int]$Length = 16, [int]$NonAlphanumericCount = 4) [System.Web.Security.Membership]::GeneratePassword($Length, $NonAlphanumericCount) }",
+tokens: [
+{text:"function New-RandomPassword {", cat:"cmdlet", note:"A small, Verb-Noun named wrapper, hiding the raw .NET syntax behind a genuine PowerShell-style interface."},
+{text:"param ([int]$Length = 16, [int]$NonAlphanumericCount = 4)", cat:"param", note:"Real parameters with sensible defaults, instead of hardcoded numbers scattered wherever the .NET call is used."},
+{text:"[System.Web.Security.Membership]::GeneratePassword($Length, $NonAlphanumericCount)", cat:"value", note:"The exact same underlying .NET call from step 1, now driven by real, adjustable parameters."},
+{text:"}", cat:"cmdlet", note:"Closes the function."}
+],
+output: "(New-RandomPassword, or New-RandomPassword -Length 24 -NonAlphanumericCount 6, now callable like any other PowerShell tool, the raw .NET syntax entirely hidden behind it)",
+order: "This comes right after finding the .NET class, wrapping it exactly like every other tool built across this phase, a clean, parameterized interface hiding whatever implementation happens to sit underneath.",
+notice: [
+{field:"Verb-Noun name, real parameters, one place to change defaults", note:"This is the same tool-building discipline from earlier lessons, applied here to wrapping raw .NET instead of a cmdlet."}
+],
+distractor: {
+name: "Leaving the raw .NET call as a one-liner used directly wherever needed",
+why: "Works exactly once, but scattering the same raw syntax with hardcoded values everywhere it's needed means no single place to change a default, and no clean, memorable name to call it by.",
+better: "Better fit for: a genuine one-off, throwaway need, never something meant to be reused more than once."
+},
+concepts: [
+{term: "Wrapping .NET in a PowerShell function", explain: "Once a useful .NET class or method is found, wrapping it in a small, parameterized, Verb-Noun named function turns raw .NET syntax into something that looks and behaves exactly like any other PowerShell tool."}
+]
+},
+{
+title: "Step 3 of 3 - confirm it generates several genuinely different passwords",
+task: "Confirm the finished tool generates several genuinely different, random passwords, not the same one repeated.",
+prefill: "",
+chips: [
+{text:"1..5 | ForEach-Object { New-RandomPassword }", hint:"Generating five separately, to confirm genuine randomness rather than a fixed, repeated result."}
+],
+check: function(c){ return /new-randompassword/i.test(c) && /foreach-object/i.test(c); },
+misses: [],
+hint: "1..5 | ForEach-Object { New-RandomPassword }, generating five separate passwords, confirming they're genuinely different each time, not one fixed value repeated.",
+tokens: [
+{text:"1..5", cat:"value", note:"A simple range, used purely to trigger five separate calls."},
+{text:"ForEach-Object", cat:"cmdlet", note:"Calls the new function five separate times."},
+{text:"{ New-RandomPassword }", cat:"value", note:"The finished tool from step 2, called repeatedly to confirm genuine randomness."}
+],
+output: "K7#mQ2$xR9!vL4@p\nT3!wZ8&nB1#kY6@d\nF9%jH2!qC5&mN8@r\nX4#pL7$vD1!wK3@t\nR6&sM9!bG2#hJ5@y",
+order: "This is last, direct proof that the finished tool from step 2 genuinely works as intended, five calls, five distinct, complex, random results, not a repeated or predictable value.",
+notice: [
+{field:"Five genuinely distinct passwords", note:"Confirms the wrapped .NET method is actually behaving randomly, exactly what a password generator needs to be trusted for."}
+],
+distractor: {
+name: "Only ever calling it once and assuming it's fine",
+why: "One call can't distinguish a genuinely random generator from one that happens to look random the first time but secretly returns the same or a predictable value. Several calls in a row is the real confirmation.",
+better: "Better fit for: never as the only test for something specifically meant to be random."
+},
+concepts: [
+{term: "Confirming genuine randomness", explain: "A single successful call doesn't prove a generator is actually random, only that it produced one plausible-looking result. Calling it several times and confirming genuinely distinct output is the real test."}
+]
+}
+]
+};
+PSLabInit(LESSON);
+</script>
+</body>
+</html>

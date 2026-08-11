@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Expert 4: Getting Started with Advanced Functions</title>
+<link rel="stylesheet" href="../assets/styles.css">
+</head>
+<body>
+<div class="page">
+<a class="back-link" href="../index.html">&larr; Back to curriculum</a>
+<h1>Expert 4 &middot; Book 2, Ch 11: Getting started with advanced functions</h1>
+<div id="app"></div>
+</div>
+<script src="../assets/engine.js"></script>
+<script>
+var LESSON = {
+title: "Expert 4",
+request: "Get-MachineInfo needs -Verbose support, our team wants to be able to see what's happening step by step when they run it against a whole list of machines, without it being noisy by default. It also needs to accept computer names piped straight in from Get-Content, not just typed as an array by hand.",
+completeMessage: "You added [CmdletBinding()] to unlock -Verbose as one of PowerShell's common parameters, added Write-Verbose calls that stay silent unless someone actually asks for them, and set up ValueFromPipeline so the function accepts piped-in computer names directly. All three are the actual substance of what makes a function 'advanced' instead of merely basic.",
+nextHref: "expert-05-objects-output.html",
+hubHref: "../index.html",
+steps: [
+{
+title: "Step 1 of 3 - unlock -Verbose support",
+task: "First, turn on the advanced-function feature that unlocks common parameters like -Verbose.",
+prefill: "",
+chips: [
+{text:"[CmdletBinding()]", hint:"The same decorator from an earlier lesson, here specifically unlocking -Verbose and the other 10+ common parameters."}
+],
+check: function(c){ return /\[cmdletbinding\(\)\]/i.test(c); },
+misses: [
+{test: function(c){ return /write-verbose/i.test(c) && !/cmdletbinding/i.test(c); }, output: "(Write-Verbose calls exist in the function, but -Verbose itself was never actually offered as a usable parameter, so there's no way to turn that output on)", note: "Write-Verbose calls only actually do anything once [CmdletBinding()] has unlocked -Verbose as a real, usable common parameter. Without it, the function has no way to turn that output on at all."}
+],
+hint: "[CmdletBinding()] as the first line in the function, unlocking -Verbose along with the rest of PowerShell's common parameters.",
+tokens: [
+{text:"[CmdletBinding()]", cat:"param", note:"Unlocks common parameters like -Verbose, -ErrorAction, and -Debug, the actual defining feature of an advanced function."}
+],
+output: "(help test now shows [-Verbose] and [-Debug] among its available parameters, none of which existed before this line was added)",
+order: "This is first because every remaining piece of this lesson, -Verbose output and pipeline input, depends on the function actually being an advanced function first.",
+notice: [
+{field:"[<CommonParameters>] now appears in the function's syntax", note:"Direct confirmation that CmdletBinding successfully unlocked -Verbose and the rest of the common parameter set."}
+],
+distractor: {
+name: "Adding Write-Verbose calls without CmdletBinding first",
+why: "Write-Verbose only produces visible output when -Verbose has actually been turned on for that call, and -Verbose only exists as a usable parameter once CmdletBinding is in place.",
+better: "Better fit for: never on its own, CmdletBinding and any use of the common parameters it unlocks are a package deal."
+},
+concepts: [
+{term: "Common parameters", explain: "A set of 11+ parameters, including -Verbose, -Debug, and -ErrorAction, that every advanced function automatically supports once [CmdletBinding()] is added, no extra code required to enable them individually."}
+]
+},
+{
+title: "Step 2 of 3 - add quiet-by-default verbose output",
+task: "Now add step-by-step status output that stays completely silent unless someone explicitly asks for it with -Verbose.",
+prefill: "",
+chips: [
+{text:"Write-Verbose", hint:"Only visible when -Verbose is explicitly used, silent by default, unlike Write-Host which always shows."},
+{text:"\"Querying $computer...\"", hint:"The status message content."}
+],
+check: function(c){ return /write-verbose/i.test(c) && /querying/i.test(c); },
+misses: [
+{test: function(c){ return /write-host/i.test(c) && /querying/i.test(c) && !/write-verbose/i.test(c); }, output: "Querying SRV01...\nQuerying SRV02...\nQuerying SRV03...\n(this always prints, for every user, every single time, whether or not anyone actually wanted this level of detail)", note: "Write-Host always prints, with no way to quietly turn it off. Write-Verbose stays completely silent by default, only appearing when a caller explicitly adds -Verbose, exactly the 'not noisy by default' requirement."}
+],
+hint: "Write-Verbose \"Querying $computer...\" stays silent unless -Verbose is explicitly used when calling the function, unlike Write-Host which always shows.",
+tokens: [
+{text:"Write-Verbose", cat:"cmdlet", note:"Produces output only visible when the caller explicitly adds -Verbose, silent by default, unlocked by CmdletBinding from step 1."},
+{text:"\"Querying $computer...\"", cat:"value", note:"The actual status message, only shown to someone who asked for this level of detail."}
+],
+output: "(nothing prints by default; running Get-MachineInfo -ComputerName SRV01,SRV02,SRV03 -Verbose shows 'Querying SRV01...', 'Querying SRV02...', 'Querying SRV03...' as each one runs)",
+order: "This comes right after unlocking CmdletBinding, adding the actual quiet-by-default status output the request specifically asked for, not noisy for everyone by default.",
+notice: [
+{field:"Silent unless -Verbose is added", note:"This is the exact behavior Write-Host could never offer, visible only to someone who explicitly opts in."}
+],
+distractor: {
+name: "Write-Host for the status messages",
+why: "Always prints, for every caller, every time, with no way to quietly suppress it. The request specifically wanted this detail available but not noisy by default, exactly what Write-Verbose provides and Write-Host cannot.",
+better: "Better fit for: a message that should always be visible to everyone, regardless of any preference, genuinely rare in a well-designed tool."
+},
+concepts: [
+{term: "Write-Verbose", explain: "Produces output only visible when a caller explicitly adds -Verbose (or sets $VerbosePreference). The correct way to offer optional, detailed status information without being noisy for everyone by default."}
+]
+},
+{
+title: "Step 3 of 3 - accept computer names piped in directly",
+task: "Now make the function accept computer names piped straight in, from something like Get-Content, not just typed as an array by hand.",
+prefill: "",
+chips: [
+{text:"[Parameter(ValueFromPipeline=$True)]", hint:"Placed above the parameter, tells PowerShell this specific parameter can receive a value directly from the pipeline."},
+{text:"[string[]]$ComputerName", hint:"The existing parameter, now additionally pipeline-aware."}
+],
+check: function(c){ return /valuefrompipeline\s*=\s*\$true/i.test(c) && /\$computername/i.test(c); },
+misses: [
+{test: function(c){ return /get-content/i.test(c) && /get-machineinfo/i.test(c) && !/valuefrompipeline/i.test(c); }, output: "(runs, but -ComputerName never actually receives anything from the pipe, it silently stays empty or errors, since the parameter was never told it could accept pipeline input)", note: "Piping into a function does nothing on its own unless a specific parameter has been explicitly marked to accept it. [Parameter(ValueFromPipeline=$True)] is what tells PowerShell 'this parameter can receive its value directly from whatever's piped in.'"}
+],
+hint: "Add [Parameter(ValueFromPipeline=$True)] directly above [string[]]$ComputerName, telling PowerShell this specific parameter can accept piped-in values.",
+tokens: [
+{text:"[Parameter(ValueFromPipeline=$True)]", cat:"param", note:"Marks this specific parameter as able to receive its value directly from piped input, not just from being typed explicitly."},
+{text:"[string[]]$ComputerName", cat:"value", note:"The same parameter from earlier lessons, now additionally pipeline-aware."}
+],
+output: "(Get-Content servers.txt | Get-MachineInfo now works, each line from the file flowing directly into -ComputerName)",
+order: "This is last, and it's a genuinely different kind of parameter enhancement than -Verbose, this one changes how a value can arrive at the parameter in the first place, not just what optional output is available.",
+notice: [
+{field:"Get-Content servers.txt | Get-MachineInfo, no -ComputerName typed at all", note:"Direct proof the function now accepts piped-in values, exactly the same ByValue mechanic proven with Trace-Command back in an earlier lesson, now applied to a function you built yourself."}
+],
+distractor: {
+name: "Piping into the function without ValueFromPipeline set",
+why: "PowerShell has no way to know which parameter a piped-in value should bind to unless a parameter is explicitly marked with ValueFromPipeline. Without it, the pipe either fails outright or silently does nothing useful.",
+better: "Better fit for: never skipping this attribute if pipeline input is genuinely a requirement, exactly what this lesson's request specified."
+},
+concepts: [
+{term: "ValueFromPipeline", explain: "Marks a specific parameter as able to receive its value directly from piped-in input, the same underlying mechanic behind Get-Service | Stop-Service, now available to add to your own functions."}
+]
+}
+]
+};
+PSLabInit(LESSON);
+</script>
+</body>
+</html>

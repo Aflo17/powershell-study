@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Expert 13: Pestering Your Script</title>
+<link rel="stylesheet" href="../assets/styles.css">
+</head>
+<body>
+<div class="page">
+<a class="back-link" href="../index.html">&larr; Back to curriculum</a>
+<h1>Expert 13 &middot; Book 2, Ch 20: Pestering your script</h1>
+<div id="app"></div>
+</div>
+<script src="../assets/engine.js"></script>
+<script>
+var LESSON = {
+title: "Expert 13",
+request: "I don't want to manually re-test Get-MachineInfo by hand every single time it changes, that's slow and I'll eventually forget to check something. Write an actual automated test for it using Pester, confirming it returns an object with the right properties, then run the whole test suite and show me it passes.",
+completeMessage: "You wrote a real Pester test instead of relying on manual, by-hand retesting, confirming automatically that Get-MachineInfo returns an object shaped exactly the way it should. Running Invoke-Pester turns 'did I remember to check everything' into a repeatable, automatic answer, exactly the shift this chapter is about.",
+nextHref: "expert-14-signing.html",
+hubHref: "../index.html",
+steps: [
+{
+title: "Step 1 of 3 - write a basic Pester test",
+task: "Write a basic Pester test confirming Get-MachineInfo returns an object with a ComputerName property.",
+prefill: "",
+chips: [
+{text:"Describe 'Get-MachineInfo' {", hint:"Groups related tests together under a clear description."},
+{text:"It 'returns an object with a ComputerName property' {", hint:"One specific, individually named test."},
+{text:"(Get-MachineInfo -ComputerName SRV01).ComputerName | Should -Be 'SRV01'", hint:"The actual assertion: does the real output match what's expected?"},
+{text:"} }", hint:"Closes both blocks."}
+],
+check: function(c){ return /describe/i.test(c) && /it\s+['"]/.test(c) && /should\s+-be/i.test(c); },
+misses: [
+{test: function(c){ return /get-machineinfo/i.test(c) && !/describe/i.test(c) && !/should/i.test(c); }, output: "(runs the function once and shows the result, but there's no actual pass/fail assertion recorded anywhere, nothing to automatically re-check the next time this changes)", note: "Just running the function and looking at the result manually is exactly the by-hand retesting this whole request wanted to move away from. A real Pester test wraps the check in Describe/It/Should, producing an actual automated pass or fail, repeatable every time without a human having to look at the output themselves."}
+],
+hint: "Describe 'Get-MachineInfo' { It 'returns an object with a ComputerName property' { (Get-MachineInfo -ComputerName SRV01).ComputerName | Should -Be 'SRV01' } }",
+tokens: [
+{text:"Describe 'Get-MachineInfo' {", cat:"cmdlet", note:"Groups related tests under one clear, named heading."},
+{text:"It 'returns an object with a ComputerName property' {", cat:"cmdlet", note:"One specific, individually named and reportable test."},
+{text:"(Get-MachineInfo -ComputerName SRV01).ComputerName | Should -Be 'SRV01'", cat:"value", note:"The actual assertion, comparing real output against the expected value automatically."},
+{text:"} }", cat:"cmdlet", note:"Closes the It and Describe blocks."}
+],
+output: "(a test file, Get-MachineInfo.Tests.ps1, now exists, describing exactly what correct behavior looks like, ready to be run automatically instead of checked by hand)",
+order: "This runs first, writing down exactly what 'correct' means as an automated, repeatable check, before actually running the test suite in the next steps.",
+notice: [
+{field:"Should -Be", note:"The actual assertion mechanism, comparing real output against an expected value and automatically reporting pass or fail, no human judgment required each time."}
+],
+distractor: {
+name: "Manually running the function and eyeballing the result",
+why: "Exactly the slow, forgettable, by-hand process the original request wanted to move away from. A real Pester test, once written, can be re-run automatically every single time the function changes, with no chance of forgetting to check something.",
+better: "Better fit for: quick, one-off sanity checks while actively developing, never as a substitute for a real, repeatable automated test."
+},
+concepts: [
+{term: "Describe / It / Should", explain: "Pester's core test structure: Describe groups related tests, It names one specific test, Should makes the actual assertion comparing real output against an expected value. Together they turn manual, by-hand verification into a repeatable, automated check."}
+]
+},
+{
+title: "Step 2 of 3 - add a second test for a different property",
+task: "Now add a second, separate test confirming the BuildNumber property is also correct.",
+prefill: "",
+chips: [
+{text:"It 'returns an object with a BuildNumber property' {", hint:"A second, separately named test, not crammed into the first one."},
+{text:"(Get-MachineInfo -ComputerName SRV01).BuildNumber | Should -Not -BeNullOrEmpty", hint:"A different kind of assertion, this time just confirming the value isn't blank, rather than checking an exact match."},
+{text:"}", hint:"Closes this second It block."}
+],
+check: function(c){ return /it\s+['"].*buildnumber/i.test(c) && /should\s+-not\s+-benullorempty/i.test(c); },
+misses: [
+{test: function(c){ return /buildnumber/i.test(c) && /should/i.test(c) && !/it\s+['"]/.test(c); }, output: "(the assertion runs, but without its own separate It block, a failure here wouldn't be individually reported, it would just show up folded into whatever test block it was crammed into)", note: "Cramming a second, unrelated assertion into an existing It block means a failure there gets reported against the wrong test name, confusing when trying to figure out exactly what broke. Each distinct thing worth checking deserves its own separately named It block."}
+],
+hint: "A separate It block for BuildNumber, using Should -Not -BeNullOrEmpty since an exact match isn't the right check here, just confirming it's actually populated.",
+tokens: [
+{text:"It 'returns an object with a BuildNumber property' {", cat:"cmdlet", note:"A second, distinct, separately named test."},
+{text:"(Get-MachineInfo -ComputerName SRV01).BuildNumber", cat:"value", note:"The specific property being checked this time."},
+{text:"Should -Not -BeNullOrEmpty", cat:"param", note:"A different assertion type than step 1, confirming presence rather than an exact match."},
+{text:"}", cat:"cmdlet", note:"Closes this It block."}
+],
+output: "(a second, separately named test now exists alongside the first, each checking one specific, distinct thing)",
+order: "This comes right after the first test, deliberately as its own separate It block, so each individual thing worth checking gets its own clearly reported result.",
+notice: [
+{field:"A second, distinct It block, not folded into the first", note:"This is what lets Pester report exactly which specific check passed or failed, rather than one vague combined result."}
+],
+distractor: {
+name: "Adding this check inside the first It block instead of a new one",
+why: "A failure here would get reported against the first test's name, confusing when trying to figure out exactly what actually broke. Separate, clearly named It blocks for each distinct thing worth checking give much clearer results.",
+better: "Better fit for: multiple assertions that are all genuinely testing the exact same specific behavior, not two different properties."
+},
+concepts: [
+{term: "One It block per distinct check", explain: "Each individually meaningful thing worth verifying deserves its own It block, so a failure is reported clearly against exactly the right, specific test name, not folded confusingly into an unrelated one."}
+]
+},
+{
+title: "Step 3 of 3 - run the test suite",
+task: "Now actually run the whole test suite and confirm both tests pass.",
+prefill: "",
+chips: [
+{text:"Invoke-Pester", hint:"Runs every Describe/It block in the test file and reports pass/fail for each."},
+{text:"-Path .\\Get-MachineInfo.Tests.ps1", hint:"The test file written in steps 1 and 2."}
+],
+check: function(c){ return /invoke-pester/i.test(c); },
+misses: [],
+hint: "Invoke-Pester -Path .\\Get-MachineInfo.Tests.ps1, running the full test suite and reporting each test's result automatically.",
+tokens: [
+{text:"Invoke-Pester", cat:"cmdlet", note:"Runs the entire test suite automatically, reporting a clear pass or fail for every individually named test."},
+{text:"-Path", cat:"param", note:"Which test file to run."},
+{text:".\\Get-MachineInfo.Tests.ps1", cat:"value", note:"The test file containing both It blocks written in steps 1 and 2."}
+],
+output: "Describing Get-MachineInfo\n  [+] returns an object with a ComputerName property 45ms\n  [+] returns an object with a BuildNumber property 32ms\nTests completed in 77ms\nTests Passed: 2, Failed: 0, Skipped: 0",
+order: "This is last, the actual payoff of writing real tests: a single command that automatically confirms every check written in steps 1 and 2, no manual, by-hand verification required.",
+notice: [
+{field:"Tests Passed: 2, Failed: 0", note:"This is the concrete result the original request was about, an automatic, repeatable confirmation, not something a human had to manually check and remember to redo every time."}
+],
+distractor: {
+name: "Only ever writing the tests, never actually running them",
+why: "A test that's never run provides zero actual verification, it's just unexecuted code sitting in a file. The real value only exists once Invoke-Pester actually runs it and reports results.",
+better: "Better fit for: never as a final step, writing tests without ever running them accomplishes nothing."
+},
+concepts: [
+{term: "Invoke-Pester", explain: "Runs an entire Pester test file, executing every Describe/It block and reporting a clear pass/fail summary. This is what turns written test code into an actual, repeatable verification, run any time the underlying function changes."}
+]
+}
+]
+};
+PSLabInit(LESSON);
+</script>
+</body>
+</html>

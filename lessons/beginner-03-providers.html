@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Beginner 3: Working with Providers</title>
+<link rel="stylesheet" href="../assets/styles.css">
+</head>
+<body>
+<div class="page">
+<a class="back-link" href="../index.html">&larr; Back to curriculum</a>
+<h1>Beginner 3 &middot; Ch 5: Working with providers</h1>
+<div id="app"></div>
+</div>
+<script src="../assets/engine.js"></script>
+<script>
+var bs = String.fromCharCode(92);
+var LESSON = {
+title: "Beginner 3",
+request: "Before you write a cleanup script, find any leftover .log files older than a Temp folder cleanup usually catches, and check whether a specific registry key even exists first, without opening regedit.",
+completeMessage: "You listed the drives PowerShell can see, found log files by wildcard on the filesystem, browsed the registry with the exact same cmdlet, and used a literal path to handle a folder name PowerShell would otherwise misread as a wildcard. That's the whole point of providers: one set of commands, many different kinds of data underneath.",
+nextHref: "beginner-04-pipeline.html",
+hubHref: "../index.html",
+steps: [
+{
+title: "Step 1 of 4 - see what drives PowerShell can browse",
+task: "Before navigating anywhere, see what PowerShell drives are actually available on this machine.",
+prefill: "",
+chips: [
+{text:"Get-PSDrive", hint:"Lists every drive PowerShell can navigate, filesystem drives, the registry, and more, all the same way."},
+{text:"Get-ChildItem", hint:"Lists what's inside a location you're already in, not the list of locations themselves."}
+],
+check: function(c){ return /get-psdrive/i.test(c); },
+misses: [
+{test: function(c){ return /get-childitem/i.test(c) && !/get-psdrive/i.test(c) && !/\-path/i.test(c) && !/hklm/i.test(c); }, output: "    Directory: C:\\Users\\jsmith\n\nMode                 LastWriteTime         Length Name\n----                 -------------         ------ ----\nd----           1/3/2026   9:14 AM                Desktop\nd----           1/3/2026   9:14 AM                Documents\nd----           1/3/2026   9:14 AM                Downloads", note: "That ran, but it just lists what's inside wherever you currently are, your home folder here. It doesn't answer the actual question, which drives, filesystem, registry, or otherwise, does PowerShell even know about."}
+],
+hint: "You want the list of locations themselves, not what's inside one of them. Get-PSDrive shows every drive PowerShell can browse.",
+tokens: [
+{text:"Get-PSDrive", cat:"cmdlet", note:"Lists every drive PowerShell knows how to browse, filesystem drives like C:, plus non-filesystem ones like HKLM: for the registry."}
+],
+output: "Name           Used (GB)     Free (GB) Provider      Root\n----           ---------     --------- --------      ----\nC                  210.4          89.6 FileSystem    C:\\\nHKCU                                    Registry      HKEY_CURRENT_USER\nHKLM                                    Registry      HKEY_LOCAL_MACHINE\nEnv                                     Environment",
+order: "This comes first because it shows you what's even available to navigate before you go looking for a specific file or registry key. Notice HKLM and HKCU sitting right alongside C, that's the whole idea of a provider.",
+notice: [
+{field:"C, Provider: FileSystem", note:"The familiar C: drive, backed by the FileSystem provider."},
+{field:"HKLM, Provider: Registry", note:"The registry, exposed as a drive too, browsable with the exact same commands as a folder."}
+],
+distractor: {
+name: "Get-ChildItem (no path)",
+why: "Get-ChildItem lists contents of wherever you currently are, it answers 'what's in this one location', not 'what locations exist'. You'd need to already know a drive existed to point it there.",
+better: "Better fit for: once you already know where you're going and want to see what's inside."
+},
+concepts: [
+{term: "Providers", explain: "A provider is what lets PowerShell expose something that isn't really a filesystem, the registry, environment variables, certificates, as if it were one. Same verbs, same navigation, completely different kind of data underneath."}
+]
+},
+{
+title: "Step 2 of 4 - find the log files",
+task: "Now find .log files in C:\\Temp using a wildcard.",
+prefill: "",
+chips: [
+{text:"Get-ChildItem", hint:"Lists items at a given path, works the same across every provider."},
+{text:"-Path", hint:"The location to look in."},
+{text:"C:\\Temp", hint:"The folder being checked."},
+{text:"-Filter *.log", hint:"A wildcard pattern, narrows results to files ending in .log."}
+],
+check: function(c){ return /get-childitem/i.test(c) && /temp/i.test(c) && /\.log/i.test(c); },
+misses: [
+{test: function(c){ return /get-childitem/i.test(c) && /\.log/i.test(c) && !/temp/i.test(c) && !/-path/i.test(c); }, output: "Get-ChildItem : Cannot find path 'C:\\Users\\jsmith\\*.log' because it does not exist.", note: "That ran from wherever your current location happens to be, not C:\\Temp, so it's searching the wrong folder entirely. Point -Path at C:\\Temp explicitly instead of relying on wherever you happen to be sitting."}
+],
+hint: "Get-ChildItem with -Path pointing at C:\\Temp, and -Filter *.log to narrow it to log files by wildcard.",
+tokens: [
+{text:"Get-ChildItem", cat:"cmdlet", note:"The same cmdlet from step 1, now pointed at a specific folder instead of listing drives."},
+{text:"-Path", cat:"param", note:"Tells it exactly where to look, instead of wherever your current location happens to be."},
+{text:"C:\\Temp", cat:"value", note:"The folder being checked for leftover logs."},
+{text:"-Filter", cat:"param", note:"Applies a wildcard pattern, handled efficiently by the filesystem provider itself."},
+{text:"*.log", cat:"value", note:"Matches any filename ending in .log."}
+],
+output: "    Directory: C:\\Temp\n\nMode                 LastWriteTime         Length Name\n----                 -------------         ------ ----\n-a---           11/2/2025   3:41 AM          88213 setup.log\n-a---           10/18/2025   7:02 AM         204112 install-old.log",
+order: "Once you know C: is a real, browsable drive from step 1, this is the ordinary filesystem lookup you'd expect, same cmdlet, just pointed somewhere specific with a wildcard.",
+notice: [
+{field:"setup.log, install-old.log", note:"Both matched the *.log wildcard. Their LastWriteTime is what you'd check next against a 30-day cutoff."}
+],
+distractor: {
+name: "Get-ChildItem *.log (no -Path)",
+why: "Without -Path, this searches whatever folder you currently happen to be in, not C:\\Temp specifically. It might return nothing, or worse, return log files from the wrong location entirely.",
+better: "Better fit for: when you're already sitting inside the folder you want to search, via cd or Set-Location first."
+},
+concepts: [
+{term: "Wildcards", explain: "* matches any number of characters. *.log matches any filename ending in .log, regardless of what comes before it. This works the same way across most PowerShell providers, not just the filesystem."}
+]
+},
+{
+title: "Step 3 of 4 - check the registry the same way",
+task: "Now check whether HKLM:\\SOFTWARE\\Contoso\\CleanupTool exists, using the exact same approach as the filesystem.",
+prefill: "",
+chips: [
+{text:"Get-ChildItem", hint:"The same cmdlet, once again. Providers mean you don't need a different tool for the registry."},
+{text:"-Path", hint:"Same parameter as step 2, just pointed at a registry path instead of a filesystem one."},
+{text:"HKLM:\\SOFTWARE\\Contoso\\CleanupTool", hint:"A registry key path, uses the same colon-and-backslash pattern as a drive."},
+{text:"regedit.exe", hint:"The old GUI registry editor. Not PowerShell, and not scriptable."}
+],
+check: function(c){ return /get-childitem/i.test(c) && /hklm/i.test(c); },
+misses: [
+{test: function(c){ return /regedit/i.test(c); }, output: "(opens a separate graphical window, nothing returned to the PowerShell console)", note: "That launches an entirely different program outside PowerShell. It works for a human clicking around, but it can't be scripted, checked in a script's exit code, or run unattended on a remote server."}
+],
+hint: "Same cmdlet as step 2, same -Path parameter, just point it at HKLM:\\SOFTWARE\\Contoso\\CleanupTool instead of a filesystem folder.",
+tokens: [
+{text:"Get-ChildItem", cat:"cmdlet", note:"The exact same cmdlet used for the filesystem in step 2, now working against the registry provider instead."},
+{text:"-Path", cat:"param", note:"Same parameter, same meaning, different kind of path underneath."},
+{text:"HKLM:\\SOFTWARE\\Contoso\\CleanupTool", cat:"value", note:"A registry key, addressed the same way a folder path would be."}
+],
+output: "    Hive: HKEY_LOCAL_MACHINE\\SOFTWARE\\Contoso\\CleanupTool\n\nName                           Property\n----                           --------\nSettings                       {Version, LastRun}",
+order: "This comes after confirming HKLM is a real, browsable drive back in step 1. Once you know that, checking a registry key is just Get-ChildItem pointed somewhere else, no new cmdlet to learn.",
+notice: [
+{field:"Hive: HKEY_LOCAL_MACHINE\\SOFTWARE\\Contoso\\CleanupTool", note:"Confirms the key exists at all, if it didn't, this would return an error instead of a result."}
+],
+distractor: {
+name: "regedit.exe",
+why: "It works, but it's a separate GUI tool entirely outside PowerShell. It can't be part of a script, can't run against a remote server, and produces nothing you can check programmatically.",
+better: "Better fit for: a one-off manual look by a human sitting at that exact machine's desktop."
+},
+concepts: [
+{term: "One provider model, many data sources", explain: "This is the entire chapter in one example: the same Get-ChildItem, the same -Path parameter, works identically against a filesystem folder and a registry key, because both are exposed through PowerShell's provider system."}
+]
+},
+{
+title: "Step 4 of 4 - handle a tricky literal path",
+task: "One of the folders is literally named C:\\Temp\\[Logs]. Check it without PowerShell misreading the brackets as a wildcard.",
+prefill: "",
+chips: [
+{text:"Get-ChildItem", hint:"Same cmdlet, one more time."},
+{text:"-LiteralPath", hint:"Takes the path exactly as typed, no wildcard characters interpreted."},
+{text:"-Path", hint:"The parameter used in steps 2 and 3. Treats brackets as wildcard pattern characters, not literal folder-name characters."},
+{text:"C:\\Temp\\[Logs]", hint:"A real folder name that happens to contain square brackets."}
+],
+check: function(c){ return /get-childitem/i.test(c) && /-literalpath/i.test(c) && /logs/i.test(c); },
+misses: [
+{test: function(c){ return /get-childitem/i.test(c) && /-path/i.test(c) && /\[logs\]/i.test(c) && !/-literalpath/i.test(c); }, output: "Get-ChildItem : Cannot find path 'C:\\Temp\\Logs' because it does not exist.", note: "That ran, but -Path treats square brackets as wildcard pattern syntax, not literal characters, so it went looking for a folder named just Logs without the brackets and found nothing. -LiteralPath is what takes the name exactly as written."}
+],
+hint: "Square brackets mean something special to -Path, they're wildcard syntax. Use -LiteralPath instead to take the folder name exactly as written.",
+tokens: [
+{text:"Get-ChildItem", cat:"cmdlet", note:"The same cmdlet from every step in this lesson."},
+{text:"-LiteralPath", cat:"param", note:"Takes the path exactly as given, with no wildcard character interpretation at all."},
+{text:"C:\\Temp\\[Logs]", cat:"value", note:"The real folder name, brackets and all."}
+],
+output: "    Directory: C:\\Temp\\[Logs]\n\nMode                 LastWriteTime         Length Name\n----                 -------------         ------ ----\n-a---           1/2/2026   6:15 AM           4021 rotation.log",
+order: "This is last because it's the edge case: everything before this assumed simple, wildcard-free paths. A folder name with brackets in it is exactly where -Path quietly breaks and -LiteralPath is the fix, worth knowing once the basics are solid.",
+notice: [
+{field:"C:\\Temp\\[Logs]", note:"Notice the directory listed in the output header matches exactly what you typed, brackets included, because -LiteralPath didn't try to interpret them."}
+],
+distractor: {
+name: "-Path with brackets",
+why: "-Path treats [ and ] as wildcard pattern characters, meaning 'any one character in this set'. A folder literally named [Logs] gets misread as a pattern instead of a name, and the lookup fails.",
+better: "Better fit for: any ordinary path with no special wildcard characters in the actual name, which is most of the time."
+},
+concepts: [
+{term: "-LiteralPath vs -Path", explain: "-Path is wildcard-aware, useful for patterns like *.log. -LiteralPath takes exactly what you typed, no interpretation. Reach for -LiteralPath whenever a real file or folder name happens to contain characters like [ ] * or ?."}
+]
+}
+]
+};
+PSLabInit(LESSON);
+</script>
+</body>
+</html>

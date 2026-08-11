@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Advanced 6: Debugging Techniques</title>
+<link rel="stylesheet" href="../assets/styles.css">
+</head>
+<body>
+<div class="page">
+<a class="back-link" href="../index.html">&larr; Back to curriculum</a>
+<h1>Advanced 6 &middot; Ch 25: Debugging techniques</h1>
+<div id="app"></div>
+</div>
+<script src="../assets/engine.js"></script>
+<script>
+var LESSON = {
+title: "Advanced 6",
+request: "Check-DiskSpace.ps1 is producing the wrong numbers somewhere in the middle, and I can't tell where just from the final output. I need you to actually pause it mid-run and look at what a specific variable holds at that exact point, not just guess by adding print statements everywhere.",
+completeMessage: "You set a real breakpoint instead of scattering print statements through the script, paused execution exactly where the suspect variable was calculated, inspected its actual value at that precise moment, and then let the script continue. That pause, inspect, continue rhythm is the core of real debugging, not guesswork.",
+nextHref: "advanced-07-tips-tricks.html",
+hubHref: "../index.html",
+steps: [
+{
+title: "Step 1 of 3 - set a breakpoint at the suspect line",
+task: "Set a breakpoint at the specific line in Check-DiskSpace.ps1 where the questionable calculation happens, line 14.",
+prefill: "",
+chips: [
+{text:"Set-PSBreakpoint", hint:"Pauses execution at a specific point in a script, without editing the script's code at all."},
+{text:"-Script .\\Check-DiskSpace.ps1", hint:"Which script file to break inside of."},
+{text:"-Line 14", hint:"The exact line to pause at, right where the suspect calculation happens."}
+],
+check: function(c){ return /set-psbreakpoint/i.test(c) && /check-diskspace/i.test(c) && /-line/i.test(c); },
+misses: [
+{test: function(c){ return /write-host/i.test(c) && /check-diskspace/i.test(c) === false && /freespace/i.test(c); }, output: "(requires manually editing the script to add print statements, then removing them again afterward, and only shows what you thought to print)", note: "Sprinkling Write-Host statements through the script works, but it means editing the file itself, guessing in advance what to print, and remembering to remove them afterward. Set-PSBreakpoint pauses execution at an exact line without touching the script's code at all, and lets you inspect anything, not just what you thought to print ahead of time."}
+],
+hint: "Set-PSBreakpoint -Script .\\Check-DiskSpace.ps1 -Line 14 pauses execution right at that line, without editing the script itself at all.",
+tokens: [
+{text:"Set-PSBreakpoint", cat:"cmdlet", note:"Pauses script execution at a specific point, without modifying the script's actual code."},
+{text:"-Script", cat:"param", note:"Which script file to set the breakpoint in."},
+{text:".\\Check-DiskSpace.ps1", cat:"value", note:"The script under investigation."},
+{text:"-Line", cat:"param", note:"The specific line number to pause execution at."},
+{text:"14", cat:"value", note:"Right where the suspect calculation happens."}
+],
+output: "  ID Script                 Line Command       Variable          Action\n  -- ------                 ---- -------       --------          ------\n   1 Check-DiskSpace.ps1      14",
+order: "This runs first, setting up the pause point before actually running the script in the next step, exactly like deciding where to stop before you start walking through something.",
+notice: [
+{field:"ID: 1", note:"Every breakpoint gets an Id, useful for removing it later once debugging is done."}
+],
+distractor: {
+name: "Adding Write-Host statements throughout the script",
+why: "Requires editing the actual script file, guessing in advance exactly which variables might matter, and remembering to strip them back out afterward. A breakpoint pauses execution without touching the script's code, and lets you inspect anything once stopped there, not just what you thought to print ahead of time.",
+better: "Better fit for: lightweight, permanent logging you actually want to keep in the script long-term, not a one-time debugging session."
+},
+concepts: [
+{term: "Set-PSBreakpoint", explain: "Pauses a running script at a specific line, variable change, or command, without editing the script's actual code. The real debugging counterpart to manually sprinkling print statements through a file."}
+]
+},
+{
+title: "Step 2 of 3 - run it and inspect the variable when it pauses",
+task: "Now run the script. When it pauses at the breakpoint, check what the suspect variable actually holds at that exact moment.",
+prefill: "",
+chips: [
+{text:".\\Check-DiskSpace.ps1", hint:"Running the script normally, it'll pause automatically once it reaches the breakpoint set in step 1."},
+{text:"$freeSpaceGB", hint:"Simply typing the variable's name at the paused debug prompt shows its current value."}
+],
+check: function(c){ return /\.\\check-diskspace\.ps1/i.test(c) && /\$freespacegb/i.test(c); },
+misses: [],
+hint: "Run .\\Check-DiskSpace.ps1, it pauses automatically at line 14. At that paused prompt, just type $freeSpaceGB to see its current value.",
+tokens: [
+{text:".\\Check-DiskSpace.ps1", cat:"cmdlet", note:"Running the script normally, execution will automatically pause once it reaches the breakpoint."},
+{text:"$freeSpaceGB", cat:"value", note:"Typed directly at the paused debug prompt, showing exactly what this variable currently holds."}
+],
+output: "Hit Line breakpoint on 'C:\\Scripts\\Check-DiskSpace.ps1:14'\n\n[DBG]: PS C:\\Scripts>> $freeSpaceGB\n-2.4",
+order: "This comes right after setting the breakpoint, running the script for real and inspecting exactly the value in question at the precise moment it's calculated.",
+notice: [
+{field:"-2.4", note:"A negative number for free disk space, immediately obvious as wrong, and exactly the kind of bug that's hard to spot just from a script's final output."}
+],
+distractor: {
+name: "Reading the script's final output and guessing from there",
+why: "The final output only shows the end result, not the value at the exact moment something went wrong. A breakpoint stops execution precisely where the calculation happens, showing the actual intermediate value directly.",
+better: "Better fit for: a script whose final output alone is already enough to diagnose the problem, without needing to see intermediate values."
+},
+concepts: [
+{term: "Inspecting variables at a breakpoint", explain: "Once paused at a breakpoint, typing any variable's name shows its exact current value at that moment, real evidence instead of guessing based on the script's eventual final output."}
+]
+},
+{
+title: "Step 3 of 3 - let it continue",
+task: "Now that the bad value's been confirmed, let the script keep running past the breakpoint.",
+prefill: "",
+chips: [
+{text:"c", hint:"Short for 'continue', the debug prompt command that resumes normal execution past the breakpoint."}
+],
+check: function(c){ return /^c$/i.test(c.trim()); },
+misses: [],
+hint: "Just type c at the [DBG]: prompt, short for continue, resuming the script from right where it paused.",
+tokens: [
+{text:"c", cat:"cmdlet", note:"The debug-prompt command for continuing execution, resuming exactly where the script paused."}
+],
+output: "(script resumes, runs to completion)",
+order: "This is last, resuming the script only after the actual bug, the negative free space value, was directly confirmed in step 2, not before.",
+notice: [
+{field:"c, short for continue", note:"One of several single-letter debug commands available at a [DBG]: prompt, alongside things like s (step) and q (quit debugging)."}
+],
+distractor: {
+name: "Stopping the script entirely instead of continuing",
+why: "Would end the debugging session before confirming whether the rest of the script behaves normally once past the bad calculation. Continuing lets you see the full picture, not just the one broken moment.",
+better: "Better fit for: once you've seen enough and are ready to go fix the actual bug in the script's code."
+},
+concepts: [
+{term: "Debug prompt commands", explain: "Once paused at a breakpoint, single letters like c (continue), s (step into the next line), and q (stop debugging) control what happens next, alongside being able to inspect any variable directly by name."}
+]
+}
+]
+};
+PSLabInit(LESSON);
+</script>
+</body>
+</html>

@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Expert 3: Building a Basic Function and Script Module</title>
+<link rel="stylesheet" href="../assets/styles.css">
+</head>
+<body>
+<div class="page">
+<a class="back-link" href="../index.html">&larr; Back to curriculum</a>
+<h1>Expert 3 &middot; Book 2, Ch 10: Building a basic function and script module</h1>
+<div id="app"></div>
+</div>
+<script src="../assets/engine.js"></script>
+<script>
+var LESSON = {
+title: "Expert 3",
+request: "Get-MachineInfo works fine right now, but only in this one console window, the second I close it, it's gone. I want the whole team to be able to use it without pasting the function into every session by hand. Save it properly as a script module, and confirm it actually loads back in fresh.",
+completeMessage: "You saved the function into a .psm1 file whose name matches its containing folder exactly, the one requirement PowerShell has for auto-discovering a module, then confirmed it loads cleanly in a brand new session. That's the real difference between a function that only exists in your current console and a genuine, reusable tool anyone on the team can load.",
+nextHref: "expert-04-advanced-functions.html",
+hubHref: "../index.html",
+steps: [
+{
+title: "Step 1 of 3 - save it as a script module file",
+task: "Save the working Get-MachineInfo function into a properly named .psm1 module file.",
+prefill: "",
+chips: [
+{text:"New-Item", hint:"Creates the module folder and file."},
+{text:"-Path 'ScriptingMOL\\ScriptingMOL.psm1'", hint:"The subfolder name and the filename must match exactly, that's what lets PowerShell auto-discover it."}
+],
+check: function(c){ return /scriptingmol\\?\/?scriptingmol\.psm1/i.test(c) || (/scriptingmol/i.test(c) && /\.psm1/i.test(c)); },
+misses: [
+{test: function(c){ return /\.psm1/i.test(c) && /mytools/i.test(c) && /scriptingmol/i.test(c) === false; }, output: "(saved fine, but the folder and file are named differently, PowerShell won't auto-discover a module unless the two names match exactly)", note: "PowerShell only auto-discovers a module when its containing folder and its .psm1 filename match exactly. A mismatched name still works if you import it by full path every time, but defeats the whole point of a module anyone can just load by name."}
+],
+hint: "Save the function into a folder and file both named ScriptingMOL: ScriptingMOL\\ScriptingMOL.psm1, matching names is the one rule that makes auto-discovery work.",
+tokens: [
+{text:"New-Item", cat:"cmdlet", note:"Creates the folder and file structure for the module."},
+{text:"-Path", cat:"param", note:"Where to create it."},
+{text:"'ScriptingMOL\\ScriptingMOL.psm1'", cat:"value", note:"Folder and filename match exactly, ScriptingMOL both times, the one requirement for PowerShell to auto-discover this as a module."}
+],
+output: "(ScriptingMOL.psm1 created inside a ScriptingMOL folder, with the Get-MachineInfo function's code saved inside it)",
+order: "This runs first, turning a function that only exists in one console session into an actual saved file, before confirming in the next steps that it loads correctly and matches PowerShell's discovery rules.",
+notice: [
+{field:"ScriptingMOL folder, ScriptingMOL.psm1 file", note:"The exact matching names PowerShell requires to auto-discover a module without needing its full path typed out every time."}
+],
+distractor: {
+name: "Saving it with a mismatched folder and filename",
+why: "Still works if you always provide the full path to Import-Module, but defeats the actual convenience of a module, being loadable by name alone from anywhere.",
+better: "Better fit for: never intentionally, mismatched names only work by accident or when full-path importing was already the plan anyway."
+},
+concepts: [
+{term: "Module folder and filename must match", explain: "For PowerShell to automatically discover a module by name, its containing folder and its .psm1 filename need to match exactly. This is what separates a reusable, easily loadable module from one that only works via a manually-typed full path."}
+]
+},
+{
+title: "Step 2 of 3 - place it where PowerShell looks automatically",
+task: "Confirm where PowerShell actually looks for modules by default, so the saved file can go there.",
+prefill: "",
+chips: [
+{text:"$env:PSModulePath", hint:"An environment variable listing every folder PowerShell automatically searches for modules."},
+{text:"-split ';'", hint:"Splits the raw semicolon-separated string into individual, readable paths."}
+],
+check: function(c){ return /\$env:psmodulepath/i.test(c); },
+misses: [
+{test: function(c){ return /c:\\program files/i.test(c) && !/psmodulepath/i.test(c); }, output: "(guessing at a plausible-looking path without confirming it's actually one PowerShell searches automatically)", note: "Guessing at a folder that sounds right risks placing the module somewhere PowerShell never actually looks. $env:PSModulePath is the definitive, confirmed list of every folder PowerShell automatically searches, no guessing required."}
+],
+hint: "$env:PSModulePath -split ';' shows every folder PowerShell automatically searches for modules, confirming exactly where to place the file instead of guessing.",
+tokens: [
+{text:"$env:PSModulePath", cat:"value", note:"An environment variable listing every folder PowerShell searches automatically when looking for a module by name."},
+{text:"-split", cat:"param", note:"Breaks the raw semicolon-separated string into individually readable paths."},
+{text:"';'", cat:"value", note:"The separator character used in this particular environment variable."}
+],
+output: "C:\\Users\\jsmith\\Documents\\PowerShell\\Modules\nC:\\Program Files\\PowerShell\\Modules\nC:\\Program Files\\PowerShell\\7\\Modules",
+order: "This comes right after saving the module file, confirming exactly where PowerShell will actually look for it automatically, rather than guessing at a plausible-sounding location.",
+notice: [
+{field:"Multiple confirmed real paths, not a guess", note:"Placing the ScriptingMOL folder from step 1 into any one of these confirmed locations is what makes it auto-discoverable by name."}
+],
+distractor: {
+name: "Guessing at a folder that sounds like it should work",
+why: "A plausible-sounding path might not actually be one PowerShell searches automatically. $env:PSModulePath is the definitive, confirmed list, no guessing needed.",
+better: "Better fit for: never guessing when the definitive list is one command away."
+},
+concepts: [
+{term: "$env:PSModulePath", explain: "The environment variable listing every folder PowerShell automatically searches when a module is referenced by name alone. Placing a properly named module folder in any of these locations makes it discoverable without a full path."}
+]
+},
+{
+title: "Step 3 of 3 - confirm it loads in a fresh session",
+task: "Confirm the module actually loads correctly, by name alone, in what would be a brand new session.",
+prefill: "",
+chips: [
+{text:"Import-Module", hint:"Loads a module's commands into the current session."},
+{text:"ScriptingMOL", hint:"Referenced by name alone, since it's now in a location PowerShell searches automatically."}
+],
+check: function(c){ return /import-module/i.test(c) && /scriptingmol/i.test(c); },
+misses: [
+{test: function(c){ return /get-machineinfo/i.test(c) && !/import-module/i.test(c); }, output: "The term 'Get-MachineInfo' is not recognized as the name of a cmdlet, function, script file, or operable program.", note: "In a genuinely fresh session, the function doesn't exist until its module is actually imported. Running the command directly, without first importing the module, fails exactly the way it would for a teammate who's never loaded this session's in-memory function."}
+],
+hint: "Import-Module ScriptingMOL, referenced by name alone, confirming the module was placed correctly and is auto-discoverable, no full path needed.",
+tokens: [
+{text:"Import-Module", cat:"cmdlet", note:"Loads a module's commands into the current session."},
+{text:"ScriptingMOL", cat:"value", note:"Referenced by name alone, proof the module is sitting in one of PowerShell's automatically searched locations."}
+],
+output: "(ScriptingMOL module imported, Get-MachineInfo now available in this session)",
+order: "This is last, the real proof that steps 1 and 2 actually worked together: a properly named module, placed in a location PowerShell searches automatically, loadable by name alone, exactly what makes it usable by anyone on the team.",
+notice: [
+{field:"Loaded by name alone, no path typed", note:"This is the concrete difference between a function that only ever existed in one console session and a genuinely reusable module."}
+],
+distractor: {
+name: "Only testing in the same session where the function was originally typed",
+why: "That session already has the function defined in memory from earlier, it wouldn't actually prove the module loads correctly from scratch. A genuinely fresh session, or explicitly importing by name, is the real test.",
+better: "Better fit for: never as the only test, the whole point is proving it works for someone who's never seen this function before."
+},
+concepts: [
+{term: "Import-Module by name", explain: "Once a module is correctly named and placed in a location listed in $env:PSModulePath, it can be loaded with just Import-Module <name>, no path required, exactly what makes it usable by anyone on the team, not just in the console session it was written in."}
+]
+}
+]
+};
+PSLabInit(LESSON);
+</script>
+</body>
+</html>

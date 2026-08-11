@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Expert 7: Simple Help - Making a Comment</title>
+<link rel="stylesheet" href="../assets/styles.css">
+</head>
+<body>
+<div class="page">
+<a class="back-link" href="../index.html">&larr; Back to curriculum</a>
+<h1>Expert 7 &middot; Book 2, Ch 14: Simple help: Making a comment</h1>
+<div id="app"></div>
+</div>
+<script src="../assets/engine.js"></script>
+<script>
+var LESSON = {
+title: "Expert 7",
+request: "Get-MachineInfo works great, but nobody on the team can figure out how to use it without asking me directly. Give it real comment-based help, the same kind that makes Get-Help work on any built-in cmdlet, a synopsis, a description of each parameter, and at least one working example.",
+completeMessage: "You wrote real comment-based help, a synopsis, parameter descriptions, and a working example, placed exactly where PowerShell expects it, right above the function. Get-Help on your own tool now works exactly the way it does on any built-in cmdlet, which is the whole point of this chapter: your tools shouldn't need you standing next to them to be usable.",
+nextHref: "expert-08-errors-tools.html",
+hubHref: "../index.html",
+steps: [
+{
+title: "Step 1 of 3 - write the synopsis and description",
+task: "Start the comment-based help block with a short synopsis and a slightly longer description.",
+prefill: "",
+chips: [
+{text:"<#", hint:"Opens a comment-based help block."},
+{text:".SYNOPSIS\nGets basic OS information from one or more computers.", hint:"A short, one-line summary."},
+{text:".DESCRIPTION\nGet-MachineInfo queries Win32_OperatingSystem on the specified computers and returns a clean, custom object with ComputerName, OSVersion, and BuildNumber.", hint:"A slightly longer explanation."}
+],
+check: function(c){ return /<#/.test(c) && /\.synopsis/i.test(c) && /\.description/i.test(c); },
+misses: [
+{test: function(c){ return /#\s/.test(c) && !/<#/.test(c) && !/\.synopsis/i.test(c); }, output: "(a single-line # comment above the function does nothing for Get-Help, it's invisible to the help system entirely)", note: "A plain single-line # comment is never picked up by Get-Help at all, it's just a regular code comment. Comment-based help specifically requires the <# ... #> block format with recognized keywords like .SYNOPSIS."}
+],
+hint: "Start with <#, then .SYNOPSIS followed by a short one-line summary, then .DESCRIPTION with a longer explanation, this is the required format Get-Help actually recognizes.",
+tokens: [
+{text:"<#", cat:"value", note:"Opens a comment-based help block, the format Get-Help specifically recognizes."},
+{text:".SYNOPSIS", cat:"param", note:"A required keyword, followed by a short, one-line summary."},
+{text:".DESCRIPTION", cat:"param", note:"A keyword for a longer, more detailed explanation of what the tool does."}
+],
+output: "(no visible output yet, this is documentation, not executable code, but it's now in the exact format Get-Help will recognize)",
+order: "This is written first, the foundational identity of the help block, before the more granular parameter-specific documentation that follows.",
+notice: [
+{field:"<# ... required keywords like .SYNOPSIS", note:"This exact format is what separates comment-based help, recognized by Get-Help, from an ordinary code comment that Get-Help would never see."}
+],
+distractor: {
+name: "A plain # comment above the function",
+why: "Invisible to Get-Help entirely, it's just a regular code comment meant for someone reading the source directly, not the structured help format PowerShell's help system actually looks for.",
+better: "Better fit for: brief notes meant only for someone reading the raw source code, not real, discoverable documentation."
+},
+concepts: [
+{term: "Comment-based help format", explain: "A specific <# ... #> block using recognized keywords like .SYNOPSIS and .DESCRIPTION, placed immediately above (or inside) a function. This exact format is what Get-Help actually looks for, an ordinary code comment is invisible to it."}
+]
+},
+{
+title: "Step 2 of 3 - document each parameter",
+task: "Now document what each parameter actually does.",
+prefill: "",
+chips: [
+{text:".PARAMETER ComputerName\nOne or more computer names to query. Accepts pipeline input.", hint:"One .PARAMETER block per actual parameter."},
+{text:".PARAMETER LogFailuresToPath\nOptional path to log any unreachable computers to a text file.", hint:"A second parameter block, matching the second real parameter."}
+],
+check: function(c){ return /\.parameter\s+computername/i.test(c) && /\.parameter\s+logfailurestopath/i.test(c); },
+misses: [
+{test: function(c){ return /\.parameter\s+computername/i.test(c) && !/\.parameter\s+logfailurestopath/i.test(c); }, output: "(help now describes -ComputerName correctly, but running Get-Help -Full still shows nothing at all for -LogFailuresToPath, exactly the parameter someone on the team would need explained most)", note: "Documenting only one parameter leaves the other one completely undocumented in the help output, even though it actually exists and takes a real value. Every real parameter needs its own .PARAMETER block to show up properly in Get-Help."}
+],
+hint: "Add one .PARAMETER block per actual parameter, matching the exact parameter names from the function itself.",
+tokens: [
+{text:".PARAMETER ComputerName", cat:"param", note:"Documents the first parameter, its name must match the actual parameter exactly."},
+{text:"One or more computer names to query. Accepts pipeline input.", cat:"value", note:"A clear description of what this specific parameter does."},
+{text:".PARAMETER LogFailuresToPath", cat:"param", note:"Documents the second parameter."},
+{text:"Optional path to log any unreachable computers to a text file.", cat:"value", note:"A clear description of the second parameter."}
+],
+output: "(Get-Help Get-MachineInfo -Full now shows a PARAMETERS section listing both -ComputerName and -LogFailuresToPath, each with their own real description)",
+order: "This comes right after the synopsis and description, going one level more specific, explaining each individual piece of the function's interface, not just the tool as a whole.",
+notice: [
+{field:"Parameter names must match exactly", note:".PARAMETER ComputerName only documents a parameter actually named $ComputerName, a typo or mismatch here means Get-Help silently shows nothing for that parameter."}
+],
+distractor: {
+name: "Documenting only the parameter that seemed most important",
+why: "Any parameter without its own .PARAMETER block simply shows nothing in Get-Help's output, even though it genuinely exists and takes a real value, exactly the gap someone unfamiliar with the tool would trip over.",
+better: "Better fit for: never skipping a real parameter, every one that exists deserves its own documented block."
+},
+concepts: [
+{term: ".PARAMETER blocks", explain: "One required per actual parameter, its name must match the real parameter name exactly for Get-Help to associate the description correctly. A parameter with no matching .PARAMETER block simply shows no description in help output."}
+]
+},
+{
+title: "Step 3 of 3 - add a working example",
+task: "Finally, add at least one concrete, working example of actually calling the function.",
+prefill: "",
+chips: [
+{text:".EXAMPLE\nGet-MachineInfo -ComputerName SRV01,SRV02 -Verbose", hint:"A real, runnable example, not just a description of what the function does."},
+{text:"#>", hint:"Closes the comment-based help block."}
+],
+check: function(c){ return /\.example/i.test(c) && /get-machineinfo/i.test(c) && /#>/.test(c); },
+misses: [
+{test: function(c){ return /\.example/i.test(c) && !/get-machineinfo/i.test(c); }, output: "(an .EXAMPLE section exists but contains no actual runnable command, just a vague description, far less useful than a real, copy-pasteable line)", note: "An .EXAMPLE section is meant to hold an actual, runnable command someone could copy and paste directly. A vague description instead of a real command line defeats the purpose, someone reading Get-Help wants to see exactly what to type."}
+],
+hint: ".EXAMPLE followed by a real, runnable command line, Get-MachineInfo -ComputerName SRV01,SRV02 -Verbose, then #> to close the whole help block.",
+tokens: [
+{text:".EXAMPLE", cat:"param", note:"Introduces a concrete, runnable example."},
+{text:"Get-MachineInfo -ComputerName SRV01,SRV02 -Verbose", cat:"value", note:"An actual command someone could copy and paste directly, not just a description."},
+{text:"#>", cat:"value", note:"Closes the entire comment-based help block, matching the <# from step 1."}
+],
+output: "NAME\n    Get-MachineInfo\nSYNOPSIS\n    Gets basic OS information from one or more computers.\nSYNTAX\n    Get-MachineInfo [-ComputerName] <string[]> [-LogFailuresToPath <string>] [<CommonParameters>]\nPARAMETERS\n    -ComputerName <string[]>\n        One or more computer names to query. Accepts pipeline input.\n    -LogFailuresToPath <string>\n        Optional path to log any unreachable computers to a text file.\nEXAMPLES\n    -------------------------- EXAMPLE 1 --------------------------\n    Get-MachineInfo -ComputerName SRV01,SRV02 -Verbose",
+order: "This is last, closing the entire help block with a concrete example, the piece that turns documentation someone has to interpret into something they can immediately copy and actually run.",
+notice: [
+{field:"Full Get-Help output, exactly like a built-in cmdlet", note:"This is the complete payoff of the whole lesson: Get-Help Get-MachineInfo -Full now works exactly the way it would on any real, built-in cmdlet."}
+],
+distractor: {
+name: "Leaving out .EXAMPLE entirely",
+why: "The synopsis and parameter descriptions explain what the tool does in the abstract, but a concrete example is often what someone actually needs to get started quickly, a real, copy-pasteable command.",
+better: "Better fit for: never skipping, at least one working example is what makes help genuinely actionable rather than just descriptive."
+},
+concepts: [
+{term: "Comment-based help is what makes Get-Help work on your own tools", explain: "A complete <# ... #> block, with .SYNOPSIS, .DESCRIPTION, .PARAMETER, and .EXAMPLE, placed right above a function, makes Get-Help work on it exactly the way it works on any built-in cmdlet, no separate documentation system required."}
+]
+}
+]
+};
+PSLabInit(LESSON);
+</script>
+</body>
+</html>

@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Intermediate 10: Sessions</title>
+<link rel="stylesheet" href="../assets/styles.css">
+</head>
+<body>
+<div class="page">
+<a class="back-link" href="../index.html">&larr; Back to curriculum</a>
+<h1>Intermediate 10 &middot; Ch 18: Sessions: Remote control with less work</h1>
+<div id="app"></div>
+</div>
+<script src="../assets/engine.js"></script>
+<script>
+var LESSON = {
+title: "Intermediate 10",
+request: "I've got three or four different checks to run against WEB03, back to back. I don't want a brand new connection opening and closing for every single one of those, that's wasteful. Set up one persistent connection, run two different commands through it, and then close it properly when you're done.",
+completeMessage: "You opened one persistent session instead of a new connection per command, reused it for two completely different checks without reconnecting either time, and closed it explicitly when the work was done. Reusing a session instead of reconnecting repeatedly is the entire point of this chapter.",
+nextHref: "intermediate-11-scripting.html",
+hubHref: "../index.html",
+steps: [
+{
+title: "Step 1 of 4 - open one persistent session",
+task: "Open a persistent connection to WEB03 that can be reused for multiple commands, and store it.",
+prefill: "",
+chips: [
+{text:"$session", hint:"Where the persistent connection will be stored for reuse."},
+{text:"=", hint:"Assignment."},
+{text:"New-PSSession", hint:"Opens a persistent remote connection and returns an object representing it, without running any command yet."},
+{text:"-ComputerName WEB03", hint:"The target machine."}
+],
+check: function(c){ return /\$session\s*=\s*new-pssession/i.test(c) && /web03/i.test(c); },
+misses: [
+{test: function(c){ return /invoke-command/i.test(c) && /web03/i.test(c) && !/new-pssession/i.test(c) && !/-session/i.test(c); }, output: "(a new connection opens and closes for this one command; running another command afterward opens and closes an entirely new connection)", note: "Invoke-Command with -ComputerName opens a fresh connection, runs the command, and tears it down again, every single time. Repeating that for three or four checks means three or four separate connections. New-PSSession opens one connection you can reuse across all of them."}
+],
+hint: "$session = New-PSSession -ComputerName WEB03 opens one persistent connection and stores it for reuse across multiple commands.",
+tokens: [
+{text:"$session", cat:"value", note:"Stores the persistent connection object for reuse in later commands."},
+{text:"=", cat:"param", note:"Assignment."},
+{text:"New-PSSession", cat:"cmdlet", note:"Opens a reusable remote connection without running any command yet, unlike Invoke-Command which opens, runs, and closes in one step."},
+{text:"-ComputerName", cat:"param", note:"Which machine to connect to."},
+{text:"WEB03", cat:"value", note:"The target."}
+],
+output: "Id  Name  ComputerName  State    ConfigurationName\n--  ----  ------------  -----    ------------------\n1   Session1  WEB03     Opened   Microsoft.PowerShell",
+order: "This runs first because everything else in this lesson depends on having one open connection ready to reuse, instead of opening a fresh one per command.",
+notice: [
+{field:"State: Opened", note:"The connection is live and ready to reuse, unlike Invoke-Command's -ComputerName, which opens and closes automatically per call."}
+],
+distractor: {
+name: "Invoke-Command -ComputerName, repeated per command",
+why: "Each call opens a brand new connection, runs one command, then closes it. Doing that three or four times in a row means repeating the connection overhead every single time, exactly what the request wanted to avoid.",
+better: "Better fit for: a single one-off remote command where reconnecting again isn't a concern."
+},
+concepts: [
+{term: "New-PSSession", explain: "Opens a persistent remote connection and hands back an object representing it, without running any command. That object can then be reused across multiple Invoke-Command calls, avoiding the overhead of reconnecting each time."}
+]
+},
+{
+title: "Step 2 of 4 - run the first command through it",
+task: "Run the first check, whether the Windows Update service is running, through that same persistent session.",
+prefill: "",
+chips: [
+{text:"Invoke-Command", hint:"Same cmdlet used for one-to-many earlier, now targeting a session instead of a fresh connection."},
+{text:"-Session $session", hint:"Reuses the already-open connection instead of opening a new one."},
+{text:"-ScriptBlock {Get-Service wuauserv}", hint:"The first check."}
+],
+check: function(c){ return /invoke-command/i.test(c) && /-session/i.test(c) && /\$session/i.test(c) && /wuauserv/i.test(c); },
+misses: [
+{test: function(c){ return /invoke-command/i.test(c) && /-computername/i.test(c) && /web03/i.test(c) && /wuauserv/i.test(c); }, output: "(runs the check, but opens and closes a brand new connection to do it, ignoring the persistent session already open from step 1)", note: "-ComputerName opens its own fresh connection every time, completely separate from the persistent one just opened in step 1. -Session reuses that already-open connection instead."}
+],
+hint: "Invoke-Command -Session $session -ScriptBlock {Get-Service wuauserv}, using -Session instead of -ComputerName reuses the already-open connection.",
+tokens: [
+{text:"Invoke-Command", cat:"cmdlet", note:"Runs a script block against a target, this time a session rather than a fresh connection."},
+{text:"-Session", cat:"param", note:"Targets an already-open session instead of opening a new connection."},
+{text:"$session", cat:"value", note:"The persistent connection object from step 1."},
+{text:"-ScriptBlock", cat:"param", note:"The command to run."},
+{text:"{Get-Service wuauserv}", cat:"value", note:"The first check."}
+],
+output: "Status   Name       PSComputerName\n------   ----       --------------\nRunning  wuauserv   WEB03",
+order: "This is the first payoff of opening the session in step 1, running a real command through it without any new connection overhead.",
+notice: [
+{field:"-Session, not -ComputerName", note:"This is what actually reuses the already-open connection instead of opening yet another one."}
+],
+distractor: {
+name: "Invoke-Command -ComputerName WEB03",
+why: "This ignores the persistent session entirely and opens its own separate, brand new connection just for this one command, exactly the repeated overhead the request wanted avoided.",
+better: "Better fit for: a genuine one-off command where no session has already been opened."
+},
+concepts: [
+{term: "-Session vs -ComputerName on Invoke-Command", explain: "-ComputerName opens a fresh connection, runs the command, and closes it, every call. -Session reuses an already-open connection from New-PSSession, avoiding that repeated overhead across multiple commands."}
+]
+},
+{
+title: "Step 3 of 4 - run a second, different command through the same session",
+task: "Now run a completely different check, free disk space, through that same session, no reconnecting.",
+prefill: "",
+chips: [
+{text:"Invoke-Command", hint:"Same cmdlet, same session, different command."},
+{text:"-Session $session", hint:"The exact same persistent connection from step 1, reused a second time."},
+{text:"-ScriptBlock {Get-PSDrive C}", hint:"A completely different check than step 2's."}
+],
+check: function(c){ return /invoke-command/i.test(c) && /-session/i.test(c) && /\$session/i.test(c) && /get-psdrive/i.test(c); },
+misses: [
+{test: function(c){ return /new-pssession/i.test(c) && /web03/i.test(c) && /get-psdrive/i.test(c); }, output: "(a second brand new connection opens to WEB03, alongside the first one already sitting open from step 1, doubling the overhead instead of reusing it)", note: "Opening a second New-PSSession here creates a completely separate connection, right alongside the one from step 1 that's still open and perfectly usable. The whole point was reusing that same $session for every command, not opening one per check."}
+],
+hint: "Same $session from steps 1 and 2, just a different script block this time, no new connection needed.",
+tokens: [
+{text:"Invoke-Command", cat:"cmdlet", note:"Same cmdlet."},
+{text:"-Session", cat:"param", note:"Same reused session."},
+{text:"$session", cat:"value", note:"The exact same connection object, used for a second, unrelated command."},
+{text:"-ScriptBlock", cat:"param", note:"Different script block than step 2."},
+{text:"{Get-PSDrive C}", cat:"value", note:"Checks free disk space on the C: drive."}
+],
+output: "Name   Used(GB)   Free(GB)   Provider   Root   PSComputerName\n----   --------   --------   --------   ----   --------------\nC      142.30     37.61      FileSystem C:\\   WEB03",
+order: "This directly proves the value of step 1: a second, entirely different command running through the identical already-open connection, no new session, no reconnect overhead.",
+notice: [
+{field:"Same $session as step 2", note:"Confirms the connection is genuinely being reused, not reopened, for a second and completely unrelated check."}
+],
+distractor: {
+name: "A second New-PSSession for this check",
+why: "Opens a whole separate connection right alongside the one already open from step 1. That's double the overhead instead of the single reused connection the request specifically asked for.",
+better: "Better fit for: connecting to a different machine entirely, not running another command against the same one."
+},
+concepts: [
+{term: "One session, many commands", explain: "Once a session is open via New-PSSession, it can be passed into -Session on as many separate Invoke-Command calls as needed, running any number of different commands without reopening the connection each time."}
+]
+},
+{
+title: "Step 4 of 4 - close it when done",
+task: "All checks done, now close the session properly.",
+prefill: "",
+chips: [
+{text:"Remove-PSSession", hint:"Closes a session opened with New-PSSession, releasing the connection."},
+{text:"-Session $session", hint:"Which session to close."}
+],
+check: function(c){ return /remove-pssession/i.test(c) && /\$session/i.test(c); },
+misses: [
+{test: function(c){ return /\$session\s*=\s*\$null/i.test(c); }, output: "(the variable no longer points to the session object, but the actual remote connection is still open on WEB03, just unreachable from here now)", note: "Clearing the variable just removes your own reference to it, it doesn't actually tell WEB03 to close the connection. The session stays open remotely, just orphaned. Remove-PSSession properly closes it."}
+],
+hint: "Remove-PSSession -Session $session properly closes the connection, not just clearing the variable that points to it.",
+tokens: [
+{text:"Remove-PSSession", cat:"cmdlet", note:"Actually closes a session and releases its connection, the correct counterpart to New-PSSession."},
+{text:"-Session", cat:"param", note:"Which session to close."},
+{text:"$session", cat:"value", note:"The same session object used throughout this lesson."}
+],
+output: "(session to WEB03 closed)",
+order: "This is last, deliberately, closing the connection only once every command that needed it has already run, not before.",
+notice: [
+{field:"Session closed, not just the variable cleared", note:"Confirms the actual remote connection was released properly, not just your local reference to it."}
+],
+distractor: {
+name: "Just clearing the $session variable",
+why: "Removes your ability to reference the session locally, but the remote connection on WEB03 stays open, orphaned and unreachable. Remove-PSSession is what actually tells the remote machine to close it.",
+better: "Better fit for: never as a substitute for actually closing a session, though clearing an unneeded variable afterward is harmless."
+},
+concepts: [
+{term: "Remove-PSSession", explain: "Properly closes a session opened with New-PSSession, releasing the connection on both ends. Worth doing once you're finished running commands through it, sessions left open unnecessarily tie up resources on the remote machine."}
+]
+}
+]
+};
+PSLabInit(LESSON);
+</script>
+</body>
+</html>

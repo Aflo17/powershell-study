@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Advanced 12: Scripting Language Crash Course</title>
+<link rel="stylesheet" href="../assets/styles.css">
+</head>
+<body>
+<div class="page">
+<a class="back-link" href="../index.html">&larr; Back to curriculum</a>
+<h1>Advanced 12 &middot; Book 2, Ch 5: Scripting language: A crash course</h1>
+<div id="app"></div>
+</div>
+<script src="../assets/engine.js"></script>
+<script>
+var LESSON = {
+title: "Advanced 12",
+request: "I need something that categorizes a service's status into a short label: 'OK' for Running, 'Down' for Stopped, 'Check' for anything else. That's a lot of if/elseif for just one variable, isn't there something built for exactly this? Also, I want to stop checking servers the moment I find the first one that's down, not waste time checking the rest once I already have my answer.",
+completeMessage: "You reached for Switch instead of a long if/elseif chain when the whole question was 'which of these several values does this match', and used break to stop a loop the instant it found what it needed instead of pointlessly finishing every remaining iteration. Both are about matching the right control-flow tool to the actual shape of the problem.",
+nextHref: "advanced-13-tools-vs-controllers.html",
+hubHref: "../index.html",
+steps: [
+{
+title: "Step 1 of 3 - categorize with Switch instead of if/elseif",
+task: "Categorize a service's Status into 'OK', 'Down', or 'Check', using Switch instead of a long if/elseif chain.",
+prefill: "",
+chips: [
+{text:"switch ($service.Status)", hint:"Tests one value against several possible matches, cleaner than a long if/elseif chain checking the same variable repeatedly."},
+{text:"{ 'Running' { 'OK' } 'Stopped' { 'Down' } default { 'Check' } }", hint:"Each possible value gets its own block; default catches anything not explicitly listed."}
+],
+check: function(c){ return /switch\s*\(/i.test(c) && /running/i.test(c) && /stopped/i.test(c) && /default/i.test(c); },
+misses: [
+{test: function(c){ return /if\s*\(.*status.*-eq.*running/i.test(c) && /elseif/i.test(c); }, output: "(works, but requires repeating $service.Status in every single elseif comparison, and gets harder to read as more categories get added)", note: "An if/elseif chain works here, but repeats the same variable comparison over and over, once per possible value, and only gets messier as more categories are added. Switch tests one value once, then matches it against several possibilities cleanly."}
+],
+hint: "switch ($service.Status) { 'Running' { 'OK' } 'Stopped' { 'Down' } default { 'Check' } }, one value tested once, matched against several possibilities.",
+tokens: [
+{text:"switch", cat:"cmdlet", note:"Tests a single value against multiple possible matches, cleaner than repeating the same comparison in a long if/elseif chain."},
+{text:"($service.Status)", cat:"param", note:"The one value being tested."},
+{text:"{ 'Running' { 'OK' } 'Stopped' { 'Down' } default { 'Check' } }", cat:"value", note:"Each specific value gets its own matching block; default catches anything not explicitly listed."}
+],
+output: "OK",
+order: "This runs first, establishing the categorization logic Switch was specifically built for, one value, several known possibilities.",
+notice: [
+{field:"default", note:"Catches any status not explicitly listed, 'Paused' or 'StartPending' for instance, without needing a case written for every possible value."}
+],
+distractor: {
+name: "A long if/elseif chain",
+why: "Works, but repeats $service.Status in every single condition, once per possible category, and only gets harder to read and maintain as more categories get added later.",
+better: "Better fit for: conditions that aren't simple equality checks, like ranges or combined comparisons, something Switch's simple value-matching can't express."
+},
+concepts: [
+{term: "switch", explain: "Tests one value against several possible matches in a single, clean block, instead of repeating the same comparison across a long if/elseif chain. Best suited to exact-value matching; more complex conditions still need if/elseif."}
+]
+},
+{
+title: "Step 2 of 3 - stop the loop the instant you find what you need",
+task: "Now loop through servers checking status, but stop immediately the moment you find the first one that's down, don't keep checking the rest.",
+prefill: "",
+chips: [
+{text:"foreach ($server in $servers)", hint:"Same loop construct from an earlier lesson."},
+{text:"{ if ((Get-Service -ComputerName $server -Name wuauserv).Status -eq 'Stopped') { \"$server is down\"; break } }", hint:"break exits the loop entirely, the instant this condition is met, skipping every remaining server."}
+],
+check: function(c){ return /foreach\s*\(/i.test(c) && /break/i.test(c); },
+misses: [
+{test: function(c){ return /foreach\s*\(/i.test(c) && /stopped/i.test(c) && !/break/i.test(c); }, output: "(checks every single server in the list, even after already finding one that's down, wasting time on servers that no longer matter for this answer)", note: "Without break, the loop keeps running through every remaining server even after already finding what it was looking for. break exits the loop immediately once the condition is met, exactly the 'stop wasting time' behavior the request asked for."}
+],
+hint: "Add break right after finding the first down server, inside the if block, it exits the entire foreach loop immediately, skipping every remaining server.",
+tokens: [
+{text:"foreach ($server in $servers)", cat:"cmdlet", note:"The same loop construct from an earlier lesson."},
+{text:"if ((Get-Service ...).Status -eq 'Stopped')", cat:"value", note:"The condition being checked for each server."},
+{text:"{ \"$server is down\"; break }", cat:"value", note:"break exits the entire loop immediately once this condition is true, skipping any remaining servers."}
+],
+output: "WEB03 is down\n(loop exits immediately, WEB04 and WEB05 never checked at all)",
+order: "This comes right after the Switch categorization, both steps about picking the control-flow tool that matches the actual shape of the problem, one-of-several-values for Switch, stop-as-soon-as-found for break.",
+notice: [
+{field:"WEB04 and WEB05 never checked", note:"Direct proof that break genuinely stopped the loop the instant its condition was met, rather than merely skipping ahead."}
+],
+distractor: {
+name: "A foreach loop with no break",
+why: "Finishes checking every server in the list regardless of whether the answer was already found early on, wasted work once the actual question, 'is there a down server', is already answered.",
+better: "Better fit for: when you genuinely need results from every item, not just the first match."
+},
+concepts: [
+{term: "break", explain: "Immediately exits the loop it's inside, skipping any remaining iterations entirely. The right tool once a loop has found what it was actually looking for and doesn't need to keep going."}
+]
+},
+{
+title: "Step 3 of 3 - confirm nothing else ran after the break",
+task: "Add a line right after the entire loop, and confirm it still runs, proving break only stopped the loop, not the whole script.",
+prefill: "",
+chips: [
+{text:"Write-Output \"Check complete.\"", hint:"Placed after the entire foreach block from step 2."}
+],
+check: function(c){ return /foreach\s*\(/i.test(c) && /break/i.test(c) && /check complete/i.test(c); },
+misses: [],
+hint: "Add Write-Output \"Check complete.\" right after the closing brace of the whole foreach loop from step 2, confirming execution continues past the loop even though break exited it early.",
+tokens: [
+{text:"foreach (...) { ... break ... }", cat:"value", note:"The full loop from step 2, unchanged."},
+{text:"Write-Output", cat:"cmdlet", note:"A line placed after the entire loop, proving script execution continues normally past it."},
+{text:"\"Check complete.\"", cat:"value", note:"If this prints, break only exited the loop, not the whole script."}
+],
+output: "WEB03 is down\nCheck complete.",
+order: "This is last, confirming precisely what break did and didn't affect, it exited the loop the instant its condition was met, but the rest of the script, everything after that loop, still ran normally.",
+notice: [
+{field:"\"Check complete.\" still printed", note:"Confirms break's effect is scoped to the loop it's inside, not the entire script."}
+],
+distractor: {
+name: "Assuming break stops the whole script",
+why: "break only exits the loop it's directly inside. A common early misconception is thinking it halts everything, this step's output proves otherwise, execution continues right past the loop.",
+better: "Better fit for: never assuming, confirming break's actual scope directly removes any doubt."
+},
+concepts: [
+{term: "break's scope", explain: "break exits only the loop it's directly inside, script execution resumes immediately after that loop's closing brace, not at the very end of the script. Worth confirming directly if you're not certain."}
+]
+}
+]
+};
+PSLabInit(LESSON);
+</script>
+</body>
+</html>

@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Beginner 5: Adding Commands</title>
+<link rel="stylesheet" href="../assets/styles.css">
+</head>
+<body>
+<div class="page">
+<a class="back-link" href="../index.html">&larr; Back to curriculum</a>
+<h1>Beginner 5 &middot; Ch 7: Adding commands</h1>
+<div id="app"></div>
+</div>
+<script src="../assets/engine.js"></script>
+<script>
+var LESSON = {
+title: "Beginner 5",
+request: "I need you to manage some Azure resources from this machine, but the Az module isn't here yet. Find it, install it properly, confirm it actually landed, then load it before you try using anything from it.",
+completeMessage: "You searched the gallery before assuming a module existed locally, installed it scoped to your own user instead of assuming admin rights, confirmed the install actually worked, and loaded it into the session before trying to use it. That find, install, confirm, import order is exactly how chapter 7 wants you to extend PowerShell beyond what ships in the box.",
+nextHref: "beginner-06-objects.html",
+hubHref: "../index.html",
+steps: [
+{
+title: "Step 1 of 4 - find the module",
+task: "Before installing anything, search for the Az module to confirm it exists and see what you're about to pull down.",
+prefill: "",
+chips: [
+{text:"Find-Module", hint:"Searches the online PowerShell Gallery for a module by name, without installing anything yet."},
+{text:"-Name Az", hint:"The module you're looking for."},
+{text:"Get-Module", hint:"Lists modules already installed or imported locally, not ones out on the gallery you haven't touched yet."}
+],
+check: function(c){ return /find-module/i.test(c) && /az/i.test(c); },
+misses: [
+{test: function(c){ return /get-module/i.test(c) && /az/i.test(c) && !/find-module/i.test(c); }, output: "(no output, nothing returned)", note: "That ran, but it came back empty, Get-Module only shows what's already installed or loaded on this machine. Since Az isn't here yet, there's nothing for it to find. Find-Module searches the online gallery instead."}
+],
+hint: "You're searching for something that isn't installed yet, so this needs Find-Module, which searches the online gallery, not Get-Module.",
+tokens: [
+{text:"Find-Module", cat:"cmdlet", note:"Searches the PowerShell Gallery online for a module by name, before anything is installed."},
+{text:"-Name", cat:"param", note:"The exact module name to search for."},
+{text:"Az", cat:"value", note:"The module in question, Microsoft's Azure management module."}
+],
+output: "Version    Name                                Repository           Description\n-------    ----                                ----------           -----------\n11.2.0     Az                                  PSGallery            Azure PowerShell - Cmdlets to manage resources in Azure",
+order: "This is always the first move for a module you don't already have: confirm it exists and see its details before pulling it down onto the machine.",
+notice: [
+{field:"Repository: PSGallery", note:"Confirms this is coming from the official, trusted PowerShell Gallery, not some other source."}
+],
+distractor: {
+name: "Get-Module -Name Az",
+why: "Get-Module only looks at what's already on this machine, installed or currently imported. Since Az was never installed here, it comes back with nothing, even though the module absolutely exists on the gallery.",
+better: "Better fit for: checking whether a module you already installed is currently loaded into this session."
+},
+concepts: [
+{term: "Find- vs Get- for modules", explain: "Find-Module searches the remote gallery, the internet. Get-Module looks at what's local, already on this machine. Confusing the two is one of the most common early mistakes extending PowerShell."}
+]
+},
+{
+title: "Step 2 of 4 - install it",
+task: "Now actually install the module, scoped to your own user rather than assuming admin rights.",
+prefill: "",
+chips: [
+{text:"Install-Module", hint:"Downloads and installs a module from the gallery onto this machine."},
+{text:"-Name Az", hint:"The module to install."},
+{text:"-Scope CurrentUser", hint:"Installs just for your account, no admin rights needed, instead of machine-wide."},
+{text:"Find-Module", hint:"Searches, from step 1. Doesn't actually install anything by itself."}
+],
+check: function(c){ return /install-module/i.test(c) && /az/i.test(c); },
+misses: [
+{test: function(c){ return /find-module/i.test(c) && /az/i.test(c) && !/install-module/i.test(c); }, output: "Version    Name                                Repository           Description\n-------    ----                                ----------           -----------\n11.2.0     Az                                  PSGallery            Azure PowerShell - Cmdlets to manage resources in Azure", note: "That's the same search from step 1, run again. Finding it confirms it exists, it doesn't put it on this machine. Install-Module is the cmdlet that actually downloads and installs it."}
+],
+hint: "Install-Module -Name Az, and add -Scope CurrentUser so it installs just for you without needing administrator rights.",
+tokens: [
+{text:"Install-Module", cat:"cmdlet", note:"Downloads and installs a module from the gallery."},
+{text:"-Name", cat:"param", note:"Which module to install."},
+{text:"Az", cat:"value", note:"The module being installed."},
+{text:"-Scope", cat:"param", note:"Controls whether it installs for just your account or the whole machine."},
+{text:"CurrentUser", cat:"value", note:"Installs into your own user profile, no admin rights required."}
+],
+output: "(Az and its dependent submodules installed to C:\\Users\\jsmith\\Documents\\PowerShell\\Modules)",
+order: "This comes right after confirming the module exists in step 1, no point installing something you haven't verified is real and legitimate first.",
+notice: [
+{field:"C:\\Users\\jsmith\\Documents\\PowerShell\\Modules", note:"Installed under your own user profile, not the machine-wide Program Files location, exactly what -Scope CurrentUser controls."}
+],
+distractor: {
+name: "Find-Module (again, without Install-Module)",
+why: "Searching again just repeats step 1. It confirms the module still exists on the gallery, but nothing gets downloaded or installed onto this machine from a search alone.",
+better: "Better fit for: rechecking the latest available version before an install, not the install itself."
+},
+concepts: [
+{term: "-Scope CurrentUser vs AllUsers", explain: "CurrentUser installs into your own profile, no admin rights needed, only you can use it. AllUsers installs machine-wide but needs elevated permissions. Default without either specified is usually AllUsers, so specifying CurrentUser explicitly is often the safer, simpler choice."}
+]
+},
+{
+title: "Step 3 of 4 - confirm it actually landed",
+task: "Before trying to use anything from it, confirm the module is actually sitting on this machine now.",
+prefill: "",
+chips: [
+{text:"Get-Module", hint:"Checks what's actually on this machine or loaded in this session."},
+{text:"-Name Az", hint:"The module to check for."},
+{text:"-ListAvailable", hint:"Shows modules installed on disk, even ones not yet loaded into the current session."},
+{text:"Find-Module", hint:"Searches the online gallery again. Doesn't confirm what's actually installed locally."}
+],
+check: function(c){ return /get-module/i.test(c) && /az/i.test(c) && /-listavailable/i.test(c); },
+misses: [
+{test: function(c){ return /find-module/i.test(c) && /az/i.test(c); }, output: "Version    Name                                Repository           Description\n-------    ----                                ----------           -----------\n11.2.0     Az                                  PSGallery            Azure PowerShell - Cmdlets to manage resources in Azure", note: "That's re-searching the online gallery again, which was step 1's job. It doesn't confirm anything about what's actually sitting on this machine right now. Get-Module -ListAvailable is what checks local disk."}
+],
+hint: "Get-Module -Name Az with -ListAvailable, that checks modules installed on disk, not just ones already loaded into this session.",
+tokens: [
+{text:"Get-Module", cat:"cmdlet", note:"Checks modules on this machine, rather than the online gallery."},
+{text:"-Name", cat:"param", note:"Which module to check for."},
+{text:"Az", cat:"value", note:"The module being confirmed."},
+{text:"-ListAvailable", cat:"param", note:"Includes modules installed on disk but not yet imported into the current session, without this it would only show already-loaded modules."}
+],
+output: "ModuleType Version    Name                                ExportedCommands\n---------- -------    ----                                -----------------\nScript     11.2.0     Az                                  {}",
+order: "This comes after installing in step 2 as a sanity check, confirming the install actually succeeded before you build anything on top of it.",
+notice: [
+{field:"ExportedCommands: {}", note:"Empty, because the module is installed but not yet imported into this session, that's what step 4 is for."}
+],
+distractor: {
+name: "Find-Module -Name Az (again)",
+why: "This re-searches the online gallery, the same thing step 1 already did. It cannot tell you whether the install in step 2 actually succeeded on this specific machine.",
+better: "Better fit for: checking what version is currently available online, separate from what you have installed."
+},
+concepts: [
+{term: "-ListAvailable", explain: "Without it, Get-Module only shows modules already imported into the current session. With it, Get-Module also shows anything installed on disk but not yet loaded, exactly what you need right after a fresh install."}
+]
+},
+{
+title: "Step 4 of 4 - load it into the session",
+task: "Finally, import the module so its commands are actually available to use.",
+prefill: "",
+chips: [
+{text:"Import-Module", hint:"Loads an installed module's commands into the current session."},
+{text:"-Name Az", hint:"The module to load."},
+{text:"Install-Module", hint:"From step 2. Installs onto disk, doesn't load it into the current session by itself."}
+],
+check: function(c){ return /import-module/i.test(c) && /az/i.test(c); },
+misses: [
+{test: function(c){ return /install-module/i.test(c) && /az/i.test(c) && !/import-module/i.test(c); }, output: "(Az is already installed, this reinstalls or updates it, but nothing changes about whether it's loaded into the current session)", note: "That's reinstalling something already confirmed present in step 3. It doesn't load the module's commands into your current session, that's a separate step. Import-Module is what actually makes its commands usable right now."}
+],
+hint: "Import-Module -Name Az actually loads its commands into your current session, separate from having it merely installed on disk.",
+tokens: [
+{text:"Import-Module", cat:"cmdlet", note:"Loads a module's commands into the current PowerShell session so they're actually usable."},
+{text:"-Name", cat:"param", note:"Which module to load."},
+{text:"Az", cat:"value", note:"The module being imported."}
+],
+output: "(Az module imported, 4291 commands now available in this session)",
+order: "This is last because it's the final step between having something installed and actually being able to use it. Installed and imported are two different states, confirmed separately in steps 3 and 4.",
+notice: [
+{field:"4291 commands now available", note:"This is the moment Az's cmdlets, like Connect-AzAccount or Get-AzResourceGroup, actually become usable in this session."}
+],
+distractor: {
+name: "Install-Module (again)",
+why: "Running install again just reinstalls or updates something already confirmed present in step 3. It has nothing to do with loading the module's commands into your current, already-running session.",
+better: "Better fit for: updating to a newer version later, not the first-time setup you're doing here."
+},
+concepts: [
+{term: "Installed vs imported", explain: "Installed means the module's files exist on disk. Imported means its commands are actually loaded and usable in your current session. Many modules auto-import the first time you use one of their commands, but knowing the explicit step matters when that auto-load doesn't happen or you want it upfront."}
+]
+}
+]
+};
+PSLabInit(LESSON);
+</script>
+</body>
+</html>

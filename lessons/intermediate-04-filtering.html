@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Intermediate 4: Filtering and Comparisons</title>
+<link rel="stylesheet" href="../assets/styles.css">
+</head>
+<body>
+<div class="page">
+<a class="back-link" href="../index.html">&larr; Back to curriculum</a>
+<h1>Intermediate 4 &middot; Ch 12: Filtering and comparisons</h1>
+<div id="app"></div>
+</div>
+<script src="../assets/engine.js"></script>
+<script>
+var LESSON = {
+title: "Intermediate 4",
+request: "I only want to see services that are stopped, and I mean actually stopped, not disabled ones mixed in. Do that on the far left of the pipeline, not the far right, I've heard that matters for performance. Then show me a case where you'd need two conditions at once, stopped AND set to Automatic startup, those are the ones we actually care about fixing.",
+completeMessage: "You filtered as early in the pipeline as possible instead of pulling everything across the network first, used -eq instead of the fragile -like text-matching operator, and combined two conditions with -and when one alone wasn't specific enough. Filter left, not right, is the performance habit this chapter is built around.",
+nextHref: "intermediate-05-remote-control.html",
+hubHref: "../index.html",
+steps: [
+{
+title: "Step 1 of 3 - filter to stopped services only",
+task: "Get only the services that are actually stopped.",
+prefill: "",
+chips: [
+{text:"Get-Service", hint:"The data source."},
+{text:"Where-Object", hint:"Filters the pipeline down to objects matching a condition."},
+{text:"{$_.Status -eq 'Stopped'}", hint:"Exact match on the Status property."},
+{text:"-like", hint:"A text-pattern operator meant for wildcards, not the right tool for an exact status match."}
+],
+check: function(c){ return /get-service/i.test(c) && /where-object/i.test(c) && /-eq/i.test(c) && /stopped/i.test(c); },
+misses: [
+{test: function(c){ return /where-object/i.test(c) && /-like/i.test(c) && /stopped/i.test(c); }, output: "Status   Name               DisplayName\n------   ----               -----------\nStopped  wuauserv           Windows Update", note: "That happened to work here, but -like is a wildcard text-matching operator, meant for patterns like 'Stop*', not exact comparisons. -eq is the correct, precise tool when you know the exact value you're matching."}
+],
+hint: "Get-Service piped into Where-Object with {$_.Status -eq 'Stopped'}, an exact match, not a text pattern.",
+tokens: [
+{text:"Get-Service", cat:"cmdlet", note:"The data source, every service on the machine."},
+{text:"Where-Object", cat:"cmdlet", note:"Filters the pipeline to objects matching a condition."},
+{text:"{$_.Status -eq 'Stopped'}", cat:"param", note:"$_ refers to the current object; -eq is an exact-match comparison operator."}
+],
+output: "Status   Name               DisplayName\n------   ----               -----------\nStopped  wuauserv           Windows Update\nStopped  Fax                Fax",
+order: "This filter runs directly against Get-Service's output, before anything else happens to the data, keeping the pipeline as lean as possible from the start.",
+notice: [
+{field:"Status: Stopped only", note:"Nothing Running or Disabled leaked through, confirming -eq matched exactly."}
+],
+distractor: {
+name: "-like instead of -eq",
+why: "-like is built for wildcard text patterns, like 'Stop*' or '*top*'. For an exact, known value such as 'Stopped', -eq is faster and more precise, and doesn't risk accidentally matching something unintended.",
+better: "Better fit for: partial or pattern-based text matches, like finding every service whose name starts with 'win'."
+},
+concepts: [
+{term: "-eq vs -like", explain: "-eq checks for an exact match. -like checks against a wildcard pattern (using * and ?). Use -eq whenever you know the precise value, save -like for genuine pattern matching."}
+]
+},
+{
+title: "Step 2 of 3 - filter early, not late",
+task: "Explain why the filter belongs right after Get-Service, not at the end of a longer pipeline.",
+prefill: "",
+chips: [
+{text:"Get-Service", hint:"Filter right after the source, first thing in the pipeline."},
+{text:"Where-Object", hint:"As early as possible."},
+{text:"{$_.Status -eq 'Stopped'}", hint:"Same condition from step 1."},
+{text:"Sort-Object DisplayName", hint:"Sorting comes after filtering, on the already-narrowed set."}
+],
+check: function(c){ return /get-service/i.test(c) && /where-object/i.test(c) && /stopped/i.test(c) && /sort-object/i.test(c) && /where-object.*sort-object/i.test(c); },
+misses: [
+{test: function(c){ return /sort-object/i.test(c) && /where-object/i.test(c) && /sort-object.*where-object/i.test(c); }, output: "(same final result, but every service, including hundreds of Running ones, gets sorted before most of them are thrown away by the filter)", note: "The output looks the same, but sorting before filtering means PowerShell does the expensive work, sorting the entire list, before most of it gets discarded anyway. Filtering first, left in the pipeline, means every later step only ever touches the smaller, already-narrowed set."}
+],
+hint: "Where-Object comes right after Get-Service, before Sort-Object. Filter first, then sort what's left, not the other way around.",
+tokens: [
+{text:"Get-Service", cat:"cmdlet", note:"The full, unfiltered source."},
+{text:"Where-Object", cat:"cmdlet", note:"Placed immediately after the source, narrowing the set as early as possible."},
+{text:"{$_.Status -eq 'Stopped'}", cat:"param", note:"Same filter condition as step 1."},
+{text:"Sort-Object", cat:"cmdlet", note:"Now only sorting the already-small, filtered set, not the full list."},
+{text:"DisplayName", cat:"value", note:"Sorting property, applied last."}
+],
+output: "Status   Name               DisplayName\n------   ----               -----------\nStopped  Fax                Fax\nStopped  wuauserv           Windows Update",
+order: "Filter left, not right, is the core lesson here: every pipeline stage after Where-Object only has to process the smaller, already-narrowed set, which matters even more once a pipeline reaches across a network to a remote machine.",
+notice: [
+{field:"Where-Object before Sort-Object", note:"The filter runs first so every step after it works with less data, not more."}
+],
+distractor: {
+name: "Sort-Object before Where-Object",
+why: "Produces the same visible result here, but forces PowerShell to sort the entire unfiltered list first, only to throw most of it away a step later. Wasted work that only gets worse with larger data sets or remote pipelines.",
+better: "Better fit for: never, this ordering is purely wasteful. Filter first, always."
+},
+concepts: [
+{term: "Filter left", explain: "Put Where-Object as early in the pipeline as possible. Every cmdlet after it only has to process whatever survived the filter, not the full original set. This matters most with large data sets or pipelines reaching across a network."}
+]
+},
+{
+title: "Step 3 of 3 - two conditions at once",
+task: "Now find services that are both stopped AND set to start automatically, the ones that actually need fixing.",
+prefill: "",
+chips: [
+{text:"Get-Service", hint:"Same source."},
+{text:"Where-Object", hint:"Same filtering cmdlet."},
+{text:"{$_.Status -eq 'Stopped' -and $_.StartType -eq 'Automatic'}", hint:"Two conditions joined with -and, both must be true for an object to pass through."}
+],
+check: function(c){ return /get-service/i.test(c) && /where-object/i.test(c) && /-and/i.test(c) && /stopped/i.test(c) && /automatic/i.test(c); },
+misses: [
+{test: function(c){ return /where-object/i.test(c) && /stopped/i.test(c) && !/-and/i.test(c); }, output: "Status   Name       StartType\n------   ----       ---------\nStopped  wuauserv   Manual\nStopped  Fax        Manual\nStopped  BITS       Automatic", note: "That's every stopped service, Manual startup types included, not just the ones that were supposed to be running automatically and aren't. Without -and combining both conditions, the ones that actually need attention are buried in the full stopped list."}
+],
+hint: "Combine two conditions inside one Where-Object block with -and: Status -eq 'Stopped' -and StartType -eq 'Automatic'.",
+tokens: [
+{text:"Get-Service", cat:"cmdlet", note:"Same source as every step."},
+{text:"Where-Object", cat:"cmdlet", note:"Same filtering cmdlet, now with a compound condition."},
+{text:"$_.Status -eq 'Stopped'", cat:"value", note:"First condition."},
+{text:"-and", cat:"param", note:"Both conditions must be true for the object to pass through."},
+{text:"$_.StartType -eq 'Automatic'", cat:"value", note:"Second condition, narrows to services that should be running but aren't."}
+],
+output: "Status   Name       StartType\n------   ----       ---------\nStopped  BITS       Automatic",
+order: "This is the most specific filter in the lesson, combining the exact-match habit from step 1 with the filter-early habit from step 2, and adding a second condition because one alone, just 'Stopped', was too broad to point at the real problem.",
+notice: [
+{field:"BITS only", note:"Every other stopped service had StartType Manual, expected to be stopped. BITS is the one that's supposed to be Automatic but isn't running, the actual problem."}
+],
+distractor: {
+name: "Where-Object with just Status -eq 'Stopped'",
+why: "Returns every stopped service, including ones that are perfectly fine stopped because they're set to Manual startup. Without the second condition on StartType, the genuinely broken ones are buried in noise.",
+better: "Better fit for: when you really do want every stopped service regardless of why, like a general inventory."
+},
+concepts: [
+{term: "Combining conditions with -and / -or", explain: "A single Where-Object block can test multiple conditions. -and requires all of them true, -or requires at least one. This is how you narrow from 'broadly interesting' down to 'actually the problem.'"}
+]
+}
+]
+};
+PSLabInit(LESSON);
+</script>
+</body>
+</html>

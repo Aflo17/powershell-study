@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Intermediate 3: Formatting</title>
+<link rel="stylesheet" href="../assets/styles.css">
+</head>
+<body>
+<div class="page">
+<a class="back-link" href="../index.html">&larr; Back to curriculum</a>
+<h1>Intermediate 3 &middot; Ch 11: Formatting: And why it's done on the right</h1>
+<div id="app"></div>
+</div>
+<script src="../assets/engine.js"></script>
+<script>
+var LESSON = {
+title: "Intermediate 3",
+request: "For the report: processes sorted by CPU, highest first, as a table with just Name and CPU. Then the same thing as a list view instead. Then save the table version to a text file. But sort before you format, not after, I've seen that go wrong before.",
+completeMessage: "You sorted before formatting every single time, not after, which is the one rule this whole chapter keeps coming back to. Format-Table and Format-List reshape data for a human to read, and once that happens the object underneath isn't the same anymore, so anything that needs to happen to the data itself, sorting included, has to come first.",
+nextHref: "intermediate-04-filtering.html",
+hubHref: "../index.html",
+steps: [
+{
+title: "Step 1 of 3 - sort, then format as a table",
+task: "Sort processes by CPU descending, then format as a table with just Name and CPU.",
+prefill: "",
+chips: [
+{text:"Get-Process", hint:"The data source."},
+{text:"Sort-Object CPU -Descending", hint:"Sorting, done before any formatting happens."},
+{text:"Format-Table Name, CPU", hint:"Displays just these two columns as a table."}
+],
+check: function(c){ return /get-process/i.test(c) && /sort-object/i.test(c) && /-descending/i.test(c) && /format-table/i.test(c); },
+misses: [
+{test: function(c){ return /format-table/i.test(c) && /sort-object/i.test(c) && /format-table.*sort-object/i.test(c); }, output: "Get-Process : The input object cannot be bound to any parameters for the command because the command does not accept pipeline input, or the input and its properties do not match any of the parameters that take pipeline input.", note: "Formatting cmdlets return special display objects, not the original data. Trying to sort after formatting either errors outright or silently sorts on the wrong thing. Sort first, always, then format."}
+],
+hint: "Get-Process, then Sort-Object CPU -Descending, then Format-Table Name, CPU. Sort before you format, never after.",
+tokens: [
+{text:"Get-Process", cat:"cmdlet", note:"The raw data."},
+{text:"Sort-Object", cat:"cmdlet", note:"Reorders the real objects, while they're still real objects."},
+{text:"CPU", cat:"value", note:"Sorting property."},
+{text:"-Descending", cat:"param", note:"Highest first."},
+{text:"Format-Table", cat:"cmdlet", note:"Reshapes the already-sorted data into a table for display."},
+{text:"Name, CPU", cat:"value", note:"The two columns to show."}
+],
+output: "Name                   CPU\n----                   ---\nchrome                 812.55\nnotepad                0.14\nsvchost                0.02",
+order: "Sort-Object runs while the data is still real objects with all their properties intact. Format-Table runs last, once the order is already locked in, because it converts everything into special formatting-only objects that can't be meaningfully sorted afterward.",
+notice: [
+{field:"chrome at the top", note:"Confirms the sort actually happened before formatting reshaped the data for display."}
+],
+distractor: {
+name: "Format-Table before Sort-Object",
+why: "Format-Table converts real objects into special display-only formatting objects. Once that's happened, Sort-Object either errors trying to bind to them, or silently doesn't sort the way you'd expect. The data has to be sorted while it's still real.",
+better: "Better fit for: never, this ordering is a hard rule, not a preference."
+},
+concepts: [
+{term: "Format last, always", explain: "This is the single most repeated rule about formatting: Format-Table and Format-List come at the very end of a pipeline, after every sort, filter, and selection is already done. They exist purely to change how something looks on the way out."}
+]
+},
+{
+title: "Step 2 of 3 - same thing, as a list",
+task: "Now show the same sorted data as a list view instead of a table.",
+prefill: "",
+chips: [
+{text:"Format-List", hint:"Shows one property per line instead of columns, useful when values are long or there are many properties."},
+{text:"Name, CPU", hint:"Same two properties as step 1."}
+],
+check: function(c){ return /get-process/i.test(c) && /sort-object/i.test(c) && /-descending/i.test(c) && /format-list/i.test(c); },
+misses: [],
+hint: "Same sorted pipeline as step 1, just swap Format-Table for Format-List at the end.",
+tokens: [
+{text:"Get-Process", cat:"cmdlet", note:"Same source."},
+{text:"Sort-Object", cat:"cmdlet", note:"Same sort, still happening before formatting."},
+{text:"CPU", cat:"value", note:"Same property."},
+{text:"-Descending", cat:"param", note:"Same order."},
+{text:"Format-List", cat:"cmdlet", note:"A different display shape than Format-Table, one property per line instead of columns."},
+{text:"Name, CPU", cat:"value", note:"Same two properties, displayed differently."}
+],
+output: "Name : chrome\nCPU  : 812.55\n\nName : notepad\nCPU  : 0.14\n\nName : svchost\nCPU  : 0.02",
+order: "This is the same pipeline as step 1 with only the final display cmdlet swapped, showing that the sort itself never has to change, only how the result gets presented at the very end.",
+notice: [
+{field:"one property per line", note:"The same data as step 1's table, just reshaped for readability when there are more properties than fit comfortably in columns."}
+],
+distractor: {
+name: "Format-Table for everything",
+why: "Not wrong exactly, but a table gets cramped fast with more than a few properties or long values. Format-List trades compactness for readability when that happens.",
+better: "Better fit for: fewer, shorter properties where columns stay readable, exactly what step 1 used it for."
+},
+concepts: [
+{term: "Format-Table vs Format-List", explain: "Both come last in a pipeline, same rule. Table suits a handful of short properties side by side. List suits many properties, or long values, better read one per line."}
+]
+},
+{
+title: "Step 3 of 3 - save the table to a file",
+task: "Take the table version from step 1 and save it to a text file for the report.",
+prefill: "",
+chips: [
+{text:"Format-Table", hint:"Same formatting cmdlet from step 1."},
+{text:"Out-File", hint:"Writes whatever would have printed to the screen into a file instead."},
+{text:"report.txt", hint:"The output filename."}
+],
+check: function(c){ return /get-process/i.test(c) && /sort-object/i.test(c) && /-descending/i.test(c) && /format-table/i.test(c) && /out-file/i.test(c); },
+misses: [],
+hint: "Same sorted, formatted table from step 1, piped one more step into Out-File.",
+tokens: [
+{text:"Get-Process", cat:"cmdlet", note:"Same source as every step."},
+{text:"Sort-Object", cat:"cmdlet", note:"Same sort."},
+{text:"CPU", cat:"value", note:"Same property."},
+{text:"-Descending", cat:"param", note:"Same order."},
+{text:"Format-Table", cat:"cmdlet", note:"Same table shape from step 1."},
+{text:"Name, CPU", cat:"value", note:"Same columns."},
+{text:"Out-File", cat:"cmdlet", note:"Captures whatever would have printed and writes it to a file instead."},
+{text:"report.txt", cat:"value", note:"The saved output."}
+],
+output: "(report.txt written, containing the same table exactly as it would have printed to the console)",
+order: "Out-File comes after formatting because at this point you genuinely do want the display text itself saved, not structured data, this is a human-readable report, not something you'll reopen and reprocess.",
+notice: [
+{field:"same table exactly as it would have printed", note:"This is correct here, unlike the CSV export lesson earlier, because this file is meant to be read by a person, not reopened as structured data."}
+],
+distractor: {
+name: "Export-Csv instead",
+why: "Export-Csv wants real object properties to turn into columns. Format-Table has already converted the data into display-only text by this point, there's nothing structured left for Export-Csv to work with.",
+better: "Better fit for: structured data you'll reopen and reprocess, before any formatting happens, exactly the CSV export from an earlier lesson."
+},
+concepts: [
+{term: "Out-File after formatting is correct here", explain: "Unlike the CSV export lesson, this file is meant purely for a human to read later, a report. Capturing the exact display text with Out-File after formatting is the right tool for that specific job."}
+]
+}
+]
+};
+PSLabInit(LESSON);
+</script>
+</body>
+</html>

@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Beginner 2: Running Commands</title>
+<link rel="stylesheet" href="../assets/styles.css">
+</head>
+<body>
+<div class="page">
+<a class="back-link" href="../index.html">&larr; Back to curriculum</a>
+<h1>Beginner 2 &middot; Ch 4: Running commands</h1>
+<div id="app"></div>
+</div>
+<script src="../assets/engine.js"></script>
+<script>
+var LESSON = {
+title: "Beginner 2",
+request: "Someone keeps pasting me one-liners full of aliases like gsv, and I can never remember what they map to. Translate one for me, rewrite it with full names instead of shortcuts, then find out why my teammate's script won't even run.",
+completeMessage: "You resolved an alias back to its real cmdlet, rewrote a shortcut-heavy command with full names, and checked execution policy across every scope instead of guessing. That habit of favoring full names over aliases in anything you'll reread later, plus checking policy before blaming the script, is exactly what chapter 4 is about.",
+nextHref: "beginner-03-providers.html",
+hubHref: "../index.html",
+steps: [
+{
+title: "Step 1 of 4 - resolve the alias",
+task: "Find out exactly which cmdlet the alias gsv actually maps to.",
+prefill: "",
+chips: [
+{text:"Get-Alias", hint:"Looks up what a short alias name actually points to."},
+{text:"gsv", hint:"The alias in question, short for something, that's what you're finding out."},
+{text:"Get-Help", hint:"Looks up documentation for a cmdlet you already know the exact name of."}
+],
+check: function(c){ return /get-alias/i.test(c) && /gsv/i.test(c); },
+misses: [
+{test: function(c){ return /get-help/i.test(c) && /gsv/i.test(c); }, output: "Get-Help : No help topics were found that match 'gsv'. Try Get-Help -Online, or Update-Help to download the latest help files.", note: "That ran, but gsv itself has no help topic, it is not a real cmdlet, just a nickname for one. Get-Alias is what resolves a nickname to its real cmdlet name."}
+],
+hint: "Aliases are their own thing in PowerShell, separate from cmdlets. Use Get-Alias with the alias name to see what it points to.",
+tokens: [
+{text:"Get-Alias", cat:"cmdlet", note:"Looks up an alias and shows the real cmdlet name it's a shortcut for."},
+{text:"gsv", cat:"value", note:"The alias being resolved."}
+],
+output: "CommandType     Name                                               Version    Source\n-----------     ----                                               -------    ------\nAlias           gsv -> Get-Service",
+order: "This has to come first because you cannot rewrite a shortcut into its full form until you know what the shortcut actually stands for.",
+notice: [
+{field:"gsv -> Get-Service", note:"The arrow is the whole answer: gsv is just a nickname for Get-Service, nothing more."}
+],
+distractor: {
+name: "Get-Help gsv",
+why: "Get-Help looks up documentation for an actual command name. gsv isn't a command in its own right, it's an alias, a nickname, so there's no help topic for it directly.",
+better: "Better fit for: once you already have the real cmdlet name, Get-Service in this case, and want to know its parameters."
+},
+concepts: [
+{term: "Aliases are nicknames, not cmdlets", explain: "gsv, ls, dir, gps, and similar short names are not commands themselves, they're pointers to real cmdlets. Get-Alias is how you see what a nickname actually resolves to."},
+{term: "Why avoid aliases in anything you'll reread", explain: "Aliases save keystrokes typing live, but they hurt readability in anything saved for later, scripts, tickets, documentation. Full cmdlet names read like sentences, aliases don't."}
+]
+},
+{
+title: "Step 2 of 4 - rewrite it with full names",
+task: "Rewrite gsv wuauserv using the full cmdlet name and a full parameter name instead of shortcuts.",
+prefill: "",
+chips: [
+{text:"Get-Service", hint:"The full cmdlet name gsv is a nickname for."},
+{text:"-Name", hint:"The full parameter name, instead of leaving it positional or truncated."},
+{text:"wuauserv", hint:"The service you're checking, the Windows Update service."},
+{text:"gsv", hint:"The alias itself. Fine to type live, not what you want in anything you'll reread."}
+],
+check: function(c){ return /get-service/i.test(c) && /-name/i.test(c) && /wuauserv/i.test(c); },
+misses: [
+{test: function(c){ return /^gsv /i.test(c.trim()) || /\bgsv\b/i.test(c) && !/get-service/i.test(c); }, output: "Status   Name               DisplayName\n------   ----               -----------\nRunning  wuauserv           Windows Update", note: "That works, and returns the right answer, but it's still the alias and a positional argument. It runs fine live, it just won't read clearly to anyone, including future you, looking at it later."}
+],
+hint: "You already know gsv means Get-Service from step 1. Spell it out fully, and add -Name in front of wuauserv instead of leaving it positional.",
+tokens: [
+{text:"Get-Service", cat:"cmdlet", note:"The full name resolved in step 1."},
+{text:"-Name", cat:"param", note:"Spelling out the parameter name instead of relying on positional binding."},
+{text:"wuauserv", cat:"value", note:"The actual Windows service name for Windows Update."}
+],
+output: "Status   Name               DisplayName\n------   ----               -----------\nRunning  wuauserv           Windows Update",
+order: "This comes right after resolving the alias, since you can't rewrite gsv into Get-Service until you know that's what it actually is.",
+notice: [
+{field:"Status", note:"Running, so the service is currently active on this machine."}
+],
+distractor: {
+name: "gsv wuauserv",
+why: "This technically works, PowerShell resolves the alias and binds wuauserv positionally. But it's exactly the shortcut-heavy style the request asked you to move away from.",
+better: "Better fit for: typing quickly at your own interactive prompt when nobody else will ever read it back."
+},
+concepts: [
+{term: "Positional vs named parameters", explain: "wuauserv on its own relies on PowerShell guessing which parameter you mean based on position. -Name wuauserv says it explicitly. Both work, only one is unambiguous to a reader."}
+]
+},
+{
+title: "Step 3 of 4 - check why the script won't run",
+task: "Before blaming the script itself, check this machine's execution policy.",
+prefill: "",
+chips: [
+{text:"Get-ExecutionPolicy", hint:"Shows the current script execution policy for this session."},
+{text:"Set-ExecutionPolicy", hint:"Changes the policy. A bigger, riskier move than just checking first."},
+{text:"Unrestricted", hint:"The loosest possible policy. Rarely the right first move on someone else's machine."}
+],
+check: function(c){ return /get-executionpolicy/i.test(c) && !/set-executionpolicy/i.test(c); },
+misses: [
+{test: function(c){ return /set-executionpolicy/i.test(c) && /unrestricted/i.test(c); }, output: "Execution Policy Change\nThe execution policy helps protect you from scripts that you do not trust. Changing the execution policy might expose\nyou to the security risks described in the about_Execution_Policies help topic. Do you want to change the execution\npolicy?\n[Y] Yes  [A] Yes to All  [N] No  [L] No to All  [S] Suspend  [?] Help (default is \"N\"):", note: "That's changing a security setting before you've even confirmed what it currently is, and Unrestricted is the loosest setting there is. Check first with Get-ExecutionPolicy, diagnose, then make the smallest change that actually fixes it."}
+],
+hint: "Check before you change. Get-ExecutionPolicy shows the current setting without touching anything.",
+tokens: [
+{text:"Get-ExecutionPolicy", cat:"cmdlet", note:"Reads the current script execution policy without changing anything."}
+],
+output: "Restricted",
+order: "This comes before any fix, because Restricted, the default on many Windows machines, blocks all scripts, and you can't pick the right fix without first confirming that's actually the problem.",
+notice: [
+{field:"Restricted", note:"The default policy on many systems: no scripts of any kind are allowed to run, only interactive commands."}
+],
+distractor: {
+name: "Set-ExecutionPolicy Unrestricted",
+why: "This jumps straight to the loosest possible setting before confirming what's actually blocking the script, and on a shared or work machine that's a bigger security change than the problem calls for.",
+better: "Better fit for: never, really, as a first move. If you do need to change policy, RemoteSigned is usually the smallest change that unblocks local scripts."
+},
+concepts: [
+{term: "Execution policy is a safety rail, not a permissions system", explain: "It's designed to stop you from accidentally double-clicking a malicious script, not to stop a determined attacker. Still worth checking and setting deliberately rather than blowing it wide open."}
+]
+},
+{
+title: "Step 4 of 4 - see the full picture",
+task: "Check the policy across every scope, not just the effective one, before deciding what to change.",
+prefill: "",
+chips: [
+{text:"Get-ExecutionPolicy", hint:"The same cmdlet from step 3."},
+{text:"-List", hint:"Shows every scope, machine policy, user policy, process, current user, local machine, instead of just the one that wins."}
+],
+check: function(c){ return /get-executionpolicy/i.test(c) && /-list/i.test(c); },
+misses: [
+{test: function(c){ return /get-executionpolicy/i.test(c) && !/-list/i.test(c); }, output: "Restricted", note: "That's the same single answer from step 3. It tells you the effective policy, not which scope is actually setting it, a Group Policy at the machine level would look identical to a plain local default from here."}
+],
+hint: "Add -List to Get-ExecutionPolicy to see every scope at once instead of just the effective result.",
+tokens: [
+{text:"Get-ExecutionPolicy", cat:"cmdlet", note:"Same cmdlet as step 3."},
+{text:"-List", cat:"param", note:"Expands the single effective answer into every scope PowerShell checks, in priority order."}
+],
+output: "        Scope ExecutionPolicy\n        ----- ---------------\nMachinePolicy       Undefined\n   UserPolicy       Undefined\n      Process       Undefined\n  CurrentUser       Undefined\n LocalMachine       Restricted",
+order: "This is the last step because it's the deeper check you only need once you know something is actually restricted. It tells you where that restriction is coming from, useful before deciding whether Set-ExecutionPolicy at the CurrentUser scope will even be enough, or whether it's set higher up by policy.",
+notice: [
+{field:"MachinePolicy, UserPolicy: Undefined", note:"Nothing is being forced by Group Policy here, so a CurrentUser-scoped change would actually take effect."},
+{field:"LocalMachine: Restricted", note:"This is where the Restricted default from step 3 is actually coming from."}
+],
+distractor: {
+name: "Get-ExecutionPolicy (no -List)",
+why: "Without -List you only see the one effective policy, not which scope set it. If MachinePolicy were Restricted instead, a CurrentUser-scoped fix would silently do nothing, and this view is the only way to tell the difference ahead of time.",
+better: "Better fit for: a quick single check when you already know policy isn't managed by Group Policy on this machine."
+},
+concepts: [
+{term: "Scope layering", explain: "PowerShell checks execution policy at multiple scopes, MachinePolicy and UserPolicy (set by Group Policy) always win over anything set locally. -List is how you see which one is actually in control before trying to change it."}
+]
+}
+]
+};
+PSLabInit(LESSON);
+</script>
+</body>
+</html>

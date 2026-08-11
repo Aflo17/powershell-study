@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Expert 9: Filling Out a Manifest</title>
+<link rel="stylesheet" href="../assets/styles.css">
+</head>
+<body>
+<div class="page">
+<a class="back-link" href="../index.html">&larr; Back to curriculum</a>
+<h1>Expert 9 &middot; Book 2, Ch 16: Filling out a manifest</h1>
+<div id="app"></div>
+</div>
+<script src="../assets/engine.js"></script>
+<script>
+var LESSON = {
+title: "Expert 9",
+request: "The ScriptingMOL module works, but it has no version number, no author, no description, nothing that shows up if someone runs Get-Module -ListAvailable and wonders what this even is. Give it a real manifest file so it looks like a legitimate, documented module, not just a mystery .psm1 sitting in a folder.",
+completeMessage: "You generated a real module manifest with New-ModuleManifest, filled in the actual metadata, version, author, description, that turns a bare .psm1 file into a properly documented module, and confirmed it with Test-ModuleManifest before trusting it. A manifest is what separates a real, discoverable module from a script file someone happens to have named .psm1.",
+nextHref: "expert-10-changing-your-brain.html",
+hubHref: "../index.html",
+steps: [
+{
+title: "Step 1 of 3 - generate the manifest file",
+task: "Generate a new manifest file for the ScriptingMOL module.",
+prefill: "",
+chips: [
+{text:"New-ModuleManifest", hint:"Generates a properly structured .psd1 manifest file, the metadata companion to a .psm1 module."},
+{text:"-Path 'ScriptingMOL\\ScriptingMOL.psd1'", hint:"Same folder as the .psm1, same base name, .psd1 extension instead."},
+{text:"-RootModule 'ScriptingMOL.psm1'", hint:"Points the manifest at the actual module code file."}
+],
+check: function(c){ return /new-modulemanifest/i.test(c) && /scriptingmol\.psd1/i.test(c); },
+misses: [
+{test: function(c){ return /new-item/i.test(c) && /\.psd1/i.test(c) && !/new-modulemanifest/i.test(c); }, output: "(creates an empty or improperly structured file, missing the specific fields PowerShell's module system actually expects in a manifest)", note: "A manifest has a specific, structured format PowerShell's module system expects, version, GUID, author fields, and more, in a precise layout. New-ModuleManifest generates that correct structure directly, a plain New-Item would just create an empty or malformed file."}
+],
+hint: "New-ModuleManifest -Path 'ScriptingMOL\\ScriptingMOL.psd1' -RootModule 'ScriptingMOL.psm1', generating the properly structured manifest file PowerShell expects.",
+tokens: [
+{text:"New-ModuleManifest", cat:"cmdlet", note:"Generates a properly structured .psd1 manifest file with all the fields PowerShell's module system expects."},
+{text:"-Path", cat:"param", note:"Where to create the manifest, same folder and base name as the .psm1 file."},
+{text:"'ScriptingMOL\\ScriptingMOL.psd1'", cat:"value", note:"Matches the module's existing name, .psd1 instead of .psm1."},
+{text:"-RootModule", cat:"param", note:"Points the manifest at the actual module code."},
+{text:"'ScriptingMOL.psm1'", cat:"value", note:"The existing module file from an earlier lesson."}
+],
+output: "(ScriptingMOL.psd1 created alongside ScriptingMOL.psm1, containing a full, properly structured manifest with default values ready to be filled in)",
+order: "This runs first, generating the correctly structured manifest file before filling in its actual metadata in the next step.",
+notice: [
+{field:"A .psd1 file alongside the existing .psm1", note:"The manifest and the module code are separate files, working together, the manifest holds metadata, the .psm1 holds the actual code."}
+],
+distractor: {
+name: "Manually creating a plain text file with a .psd1 extension",
+why: "A manifest needs a specific, structured hashtable format with particular fields, ModuleVersion, GUID, Author, and more, in a precise layout PowerShell's module system expects. New-ModuleManifest generates that exact structure automatically.",
+better: "Better fit for: never manually, New-ModuleManifest exists specifically to avoid getting this structure wrong by hand."
+},
+concepts: [
+{term: "Module manifest (.psd1)", explain: "A structured metadata file, separate from the actual module code (.psm1), holding version, author, description, and other details. Generated with New-ModuleManifest rather than written by hand, to guarantee the exact format PowerShell's module system expects."}
+]
+},
+{
+title: "Step 2 of 3 - fill in the real metadata",
+task: "Now regenerate it with the actual metadata filled in: version, author, and description.",
+prefill: "",
+chips: [
+{text:"New-ModuleManifest -Path 'ScriptingMOL\\ScriptingMOL.psd1' -RootModule 'ScriptingMOL.psm1'", hint:"Same base command from step 1."},
+{text:"-ModuleVersion '1.0.0'", hint:"A real starting version number."},
+{text:"-Author 'IT Team'", hint:"Who actually maintains this module."},
+{text:"-Description 'Provides Get-MachineInfo for querying basic OS details from remote computers.'", hint:"A real, specific description, not a placeholder."}
+],
+check: function(c){ return /new-modulemanifest/i.test(c) && /-moduleversion/i.test(c) && /-author/i.test(c) && /-description/i.test(c); },
+misses: [
+{test: function(c){ return /new-modulemanifest/i.test(c) && !/-author/i.test(c) && !/-description/i.test(c); }, output: "(a manifest file exists, but Get-Module -ListAvailable still shows a blank Author and Description, exactly the mystery-module problem the original request wanted fixed)", note: "A manifest generated with only defaults still leaves Author and Description blank. Someone running Get-Module -ListAvailable would still have no idea who maintains this or what it's actually for, exactly the original complaint."}
+],
+hint: "Re-run New-ModuleManifest with -ModuleVersion '1.0.0', -Author 'IT Team', and -Description explaining what Get-MachineInfo actually does.",
+tokens: [
+{text:"New-ModuleManifest -Path ... -RootModule ...", cat:"value", note:"Same base command as step 1."},
+{text:"-ModuleVersion", cat:"param", note:"A real starting version number for this module."},
+{text:"'1.0.0'", cat:"value", note:"A sensible starting version."},
+{text:"-Author", cat:"param", note:"Who maintains it."},
+{text:"'IT Team'", cat:"value", note:"A real, specific value instead of a blank default."},
+{text:"-Description", cat:"param", note:"What the module actually does."},
+{text:"'Provides Get-MachineInfo for querying basic OS details from remote computers.'", cat:"value", note:"A real, specific description someone could actually read and understand."}
+],
+output: "(ScriptingMOL.psd1 regenerated with real version, author, and description fields filled in, no longer blank defaults)",
+order: "This comes right after generating the basic manifest structure in step 1, now filling in the actual identifying details that make it useful to someone browsing available modules.",
+notice: [
+{field:"Real values instead of blank defaults", note:"This is the actual substance of the original request, a module someone can identify and understand just from browsing, not a mystery file."}
+],
+distractor: {
+name: "Leaving Author and Description at their blank defaults",
+why: "Technically produces a valid manifest structurally, but leaves exactly the information gap the original request was about, nobody browsing modules would learn anything about who maintains this or what it does.",
+better: "Better fit for: never intentionally, filling in real metadata is the entire point of this step."
+},
+concepts: [
+{term: "Manifest metadata fields", explain: "ModuleVersion, Author, and Description are among the fields a manifest can carry, surfaced directly when someone runs Get-Module -ListAvailable, turning an anonymous .psm1 file into a properly identified, documented module."}
+]
+},
+{
+title: "Step 3 of 3 - confirm the manifest is valid",
+task: "Confirm the finished manifest is actually valid before trusting it.",
+prefill: "",
+chips: [
+{text:"Test-ModuleManifest", hint:"Validates a manifest file's structure and confirms it points at real, existing files."},
+{text:"-Path 'ScriptingMOL\\ScriptingMOL.psd1'", hint:"The manifest being validated."}
+],
+check: function(c){ return /test-modulemanifest/i.test(c) && /scriptingmol\.psd1/i.test(c); },
+misses: [
+{test: function(c){ return /get-module/i.test(c) && /scriptingmol/i.test(c) && !/test-modulemanifest/i.test(c); }, output: "(Get-Module confirms the module loads, but doesn't specifically validate the manifest file's own structure and required fields the way Test-ModuleManifest does)", note: "Get-Module confirms the module loads overall, but Test-ModuleManifest specifically validates the manifest file itself, its structure, required fields, and whether RootModule actually points at a real, existing file, catching manifest-specific problems Get-Module wouldn't necessarily surface."}
+],
+hint: "Test-ModuleManifest -Path 'ScriptingMOL\\ScriptingMOL.psd1', specifically validating the manifest's structure before trusting it's correctly built.",
+tokens: [
+{text:"Test-ModuleManifest", cat:"cmdlet", note:"Validates a manifest file's structure, required fields, and whether it correctly points at real, existing files."},
+{text:"-Path", cat:"param", note:"Which manifest to validate."},
+{text:"'ScriptingMOL\\ScriptingMOL.psd1'", cat:"value", note:"The finished manifest from step 2."}
+],
+output: "ModuleType Version    Name           ExportedCommands\n---------- -------    ----           -----------------\nScript     1.0.0      ScriptingMOL   {Get-MachineInfo}",
+order: "This is last, a direct validation step confirming everything built in steps 1 and 2 is actually structurally correct, before trusting it as a genuine, documented module.",
+notice: [
+{field:"Version 1.0.0, ExportedCommands: {Get-MachineInfo}", note:"Confirms the manifest is not just present but genuinely valid, correctly reporting the real version and the actual function it exposes."}
+],
+distractor: {
+name: "Assuming the manifest is correct without validating it",
+why: "A manifest can have a typo in a field name, an incorrect RootModule reference, or other structural issues that wouldn't be obvious just from having created the file. Test-ModuleManifest catches these directly.",
+better: "Better fit for: never skipping this check for a manifest meant to represent a module other people will actually rely on."
+},
+concepts: [
+{term: "Test-ModuleManifest", explain: "Validates a manifest file's structure and required fields, and confirms references like RootModule actually point at real, existing files, catching problems before anyone else tries to rely on this module."}
+]
+}
+]
+};
+PSLabInit(LESSON);
+</script>
+</body>
+</html>

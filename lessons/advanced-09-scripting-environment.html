@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Advanced 9: Setting Up Your Scripting Environment</title>
+<link rel="stylesheet" href="../assets/styles.css">
+</head>
+<body>
+<div class="page">
+<a class="back-link" href="../index.html">&larr; Back to curriculum</a>
+<h1>Advanced 9 &middot; Book 2, Ch 2: Setting up your scripting environment</h1>
+<div id="app"></div>
+</div>
+<script src="../assets/engine.js"></script>
+<script>
+var LESSON = {
+title: "Advanced 9",
+request: "I'm starting to write real scripts now, not just one-off commands. Before I write anything serious, tell me what PowerShell edition and version I'm actually running, since scripts can behave differently across them, and confirm whether I've got administrator rights on this session, since that changes what execution policy scope I can even set.",
+completeMessage: "You checked the actual PowerShell edition and version before assuming anything about what a script could rely on, and confirmed whether the current session had administrator rights before assuming a machine-wide execution policy change was even possible. That upfront environment check is what this chapter is really about, know your workspace before you start writing serious scripts in it.",
+nextHref: "advanced-10-wwpd.html",
+hubHref: "../index.html",
+steps: [
+{
+title: "Step 1 of 3 - check the PowerShell edition and version",
+task: "Before writing anything serious, confirm exactly which PowerShell edition and version this session is running.",
+prefill: "",
+chips: [
+{text:"$PSVersionTable", hint:"The same built-in variable from chapter 2, still the right tool here, now specifically checking the PSEdition field too."}
+],
+check: function(c){ return /\$psversiontable/i.test(c); },
+misses: [
+{test: function(c){ return /get-host/i.test(c) && !/\$psversiontable/i.test(c); }, output: "Name             : ConsoleHost\nVersion          : 7.4.1\nCurrentCulture   : en-US", note: "Get-Host mixes in console and UI details, and doesn't clearly show PSEdition, whether this is Windows PowerShell versus PowerShell 7+, information that matters for which features and syntax a script can actually rely on. $PSVersionTable is the more direct, complete source."}
+],
+hint: "$PSVersionTable, the same variable from way back in chapter 2, still the right first check before writing anything meant to be reused seriously.",
+tokens: [
+{text:"$PSVersionTable", cat:"value", note:"A built-in variable holding version and edition details, the definitive source for what this session can actually do."}
+],
+output: "Name                           Value\n----                           -----\nPSVersion                      7.4.1\nPSEdition                      Core\nOS                             Microsoft Windows 10.0.19045",
+order: "This is the very first move before writing anything meant to last, a script relying on PowerShell 7+ syntax will simply fail on a machine only running Windows PowerShell 5.1, and this confirms which one you're actually working in.",
+notice: [
+{field:"PSEdition: Core", note:"Confirms this is PowerShell 7+ (cross-platform), not the older Windows PowerShell 5.1 (Desktop edition), which matters for certain syntax and module compatibility."}
+],
+distractor: {
+name: "Get-Host",
+why: "Returns some version information, but mixed in with console-specific UI details, and without a clear PSEdition field distinguishing Windows PowerShell from PowerShell 7+.",
+better: "Better fit for: checking details about the current host application itself, like buffer size, not the PowerShell engine's version or edition."
+},
+concepts: [
+{term: "PSEdition", explain: "Distinguishes 'Desktop' (Windows PowerShell 5.1, Windows-only) from 'Core' (PowerShell 7+, cross-platform). A script relying on features specific to one edition can fail outright on the other."}
+]
+},
+{
+title: "Step 2 of 3 - check for administrator rights",
+task: "Now confirm whether this specific session is actually running with administrator rights.",
+prefill: "",
+chips: [
+{text:"[Security.Principal.WindowsPrincipal]", hint:"A .NET class used to inspect the current user's identity and role membership directly."},
+{text:"[Security.Principal.WindowsIdentity]::GetCurrent()", hint:"Gets the identity actually running this session."},
+{text:").IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)", hint:"Checks whether that identity belongs to the built-in Administrator role."}
+],
+check: function(c){ return /windowsprincipal/i.test(c) && /administrator/i.test(c); },
+misses: [
+{test: function(c){ return /whoami/i.test(c) && !/windowsprincipal/i.test(c); }, output: "corp\\jsmith", note: "whoami confirms who you're logged in as, but not whether this specific session is actually elevated with administrator rights. A regular user account can also open a session with 'Run as Administrator', or not, whoami alone can't tell the difference."}
+],
+hint: "([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator), directly checks whether this session is actually elevated.",
+tokens: [
+{text:"[Security.Principal.WindowsPrincipal]", cat:"value", note:"A .NET class wrapping identity and role-membership information."},
+{text:"[Security.Principal.WindowsIdentity]::GetCurrent()", cat:"value", note:"Gets the identity actually running the current session."},
+{text:".IsInRole(...)", cat:"param", note:"Checks role membership directly."},
+{text:"[Security.Principal.WindowsBuiltInRole]::Administrator", cat:"value", note:"The specific role being checked for."}
+],
+output: "False",
+order: "This comes right after confirming the PowerShell version, a second piece of the same upfront environment check, before assuming a machine-wide setting change like execution policy could succeed.",
+notice: [
+{field:"False", note:"This session is not currently elevated, meaning changing an execution policy machine-wide, rather than -Scope CurrentUser, would fail here."}
+],
+distractor: {
+name: "whoami",
+why: "Confirms your account identity, but not whether this particular session is running elevated. The same account can open both a regular and an elevated session, whoami can't distinguish between them.",
+better: "Better fit for: confirming which account you're logged in as, a separate question from whether this session is elevated."
+},
+concepts: [
+{term: "Checking for elevation", explain: "Whether a session is 'Run as Administrator' affects what it's allowed to do, like setting a machine-wide execution policy. Checking this directly, rather than assuming, avoids a command failing partway through a script for a permissions reason that could've been caught upfront."}
+]
+},
+{
+title: "Step 3 of 3 - pick an execution policy scope that matches",
+task: "Given this session isn't elevated, set an execution policy at a scope that will actually work without administrator rights.",
+prefill: "",
+chips: [
+{text:"Set-ExecutionPolicy RemoteSigned", hint:"The policy from an earlier lesson."},
+{text:"-Scope CurrentUser", hint:"Applies just to this account, no elevation required, unlike the machine-wide default scope."}
+],
+check: function(c){ return /set-executionpolicy/i.test(c) && /-scope\s+currentuser/i.test(c); },
+misses: [
+{test: function(c){ return /set-executionpolicy/i.test(c) && !/-scope/i.test(c); }, output: "Set-ExecutionPolicy : Access to the registry key 'HKEY_LOCAL_MACHINE\\...' is denied.", note: "Without an explicit -Scope, this defaults to the machine-wide LocalMachine scope, which requires administrator rights, exactly what step 2 just confirmed this session doesn't have. -Scope CurrentUser applies just to this account, no elevation needed."}
+],
+hint: "Set-ExecutionPolicy RemoteSigned -Scope CurrentUser, matching the non-elevated session confirmed in step 2.",
+tokens: [
+{text:"Set-ExecutionPolicy", cat:"cmdlet", note:"Changes the execution policy."},
+{text:"RemoteSigned", cat:"value", note:"The safer middle-ground policy from an earlier lesson."},
+{text:"-Scope", cat:"param", note:"Controls how broadly the change applies."},
+{text:"CurrentUser", cat:"value", note:"Just this account, matching a session confirmed non-elevated in step 2, no administrator rights needed."}
+],
+output: "(policy updated to RemoteSigned for CurrentUser, no elevation required)",
+order: "This is last, directly acting on what steps 1 and 2 established, choosing a scope that actually matches this session's real, confirmed permissions instead of assuming.",
+notice: [
+{field:"No access denied error this time", note:"Confirms picking -Scope CurrentUser correctly matched the non-elevated session confirmed in step 2."}
+],
+distractor: {
+name: "Set-ExecutionPolicy with no -Scope specified",
+why: "Defaults to the machine-wide LocalMachine scope, which requires administrator rights. Step 2 already confirmed this session doesn't have them, so this would fail with an access denied error.",
+better: "Better fit for: a session already confirmed to be running elevated."
+},
+concepts: [
+{term: "Matching scope to actual permissions", explain: "Checking whether a session is elevated first, then picking -Scope CurrentUser or the machine-wide default accordingly, avoids a command failing partway through for a permissions reason that was entirely predictable upfront."}
+]
+}
+]
+};
+PSLabInit(LESSON);
+</script>
+</body>
+</html>

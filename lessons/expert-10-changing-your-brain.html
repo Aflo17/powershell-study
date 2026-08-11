@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Expert 10: Changing Your Brain When It Comes to Scripting</title>
+<link rel="stylesheet" href="../assets/styles.css">
+</head>
+<body>
+<div class="page">
+<a class="back-link" href="../index.html">&larr; Back to curriculum</a>
+<h1>Expert 10 &middot; Book 2, Ch 17: Changing your brain when it comes to scripting</h1>
+<div id="app"></div>
+</div>
+<script src="../assets/engine.js"></script>
+<script>
+var LESSON = {
+title: "Expert 10",
+request: "I asked for a script that finds inactive user accounts and disables them. Before you write the whole thing as one big block that does everything at once, step back: what's actually the reusable, general piece here, versus the part that's specific to exactly what I asked for right now? Structure it that way instead of just one script.",
+completeMessage: "You separated the genuinely reusable piece, finding inactive accounts, into its own general tool, and kept the specific action, actually disabling them for this particular request, as a separate step calling that tool. That habit, instinctively splitting 'general capability' from 'this one specific use of it', is the actual brain change this chapter is named for.",
+nextHref: "expert-11-professional-grade.html",
+hubHref: "../index.html",
+steps: [
+{
+title: "Step 1 of 3 - separate the general piece",
+task: "First identify and build the genuinely reusable, general piece: finding inactive accounts, without deciding what to do about them yet.",
+prefill: "",
+chips: [
+{text:"function Find-InactiveADUser {", hint:"A tool, genuinely reusable, its only job is finding, not acting."},
+{text:"param ([int]$DaysInactive = 90)", hint:"A general parameter, no hardcoded action baked in."},
+{text:"Get-ADUser -Filter * -Properties LastLogonDate | Where-Object { $_.LastLogonDate -lt (Get-Date).AddDays(-$DaysInactive) }", hint:"Finds accounts, returns them as real objects, doesn't decide their fate."},
+{text:"}", hint:"Closes the function."}
+],
+check: function(c){ return /function\s+find-inactiveaduser/i.test(c) && /daysinactive/i.test(c) && !/disable-aduser/i.test(c); },
+misses: [
+{test: function(c){ return /disable-aduser/i.test(c) && /function/i.test(c); }, output: "(a function that both finds AND disables accounts in one step, meaning anyone who ever just wants to find inactive accounts, for a report, for review, for anything else, has no way to use just that part)", note: "Combining finding and disabling into a single function means the finding logic can never be reused on its own, for a report, a review before acting, or any purpose other than immediate disabling. This chapter's whole point is recognizing that finding is the genuinely general, reusable piece, and separating it out."}
+],
+hint: "function Find-InactiveADUser { param ([int]$DaysInactive = 90) Get-ADUser -Filter * -Properties LastLogonDate | Where-Object { ... } }, purely about finding, no action decided yet.",
+tokens: [
+{text:"function Find-InactiveADUser {", cat:"cmdlet", note:"Named Verb-Noun, Find, not Disable, because finding is the genuinely general piece."},
+{text:"param ([int]$DaysInactive = 90)", cat:"param", note:"A general parameter, controls the definition of 'inactive', nothing about what happens next."},
+{text:"Get-ADUser -Filter * -Properties LastLogonDate | Where-Object { $_.LastLogonDate -lt (Get-Date).AddDays(-$DaysInactive) }", cat:"value", note:"Finds and returns real account objects, doesn't decide their fate."},
+{text:"}", cat:"cmdlet", note:"Closes the function."}
+],
+output: "(a genuinely reusable tool, callable as Find-InactiveADUser, or Find-InactiveADUser -DaysInactive 30, useful for a report, a review, or as input to some other action entirely, not just this one request)",
+order: "This is built first, deliberately separated from any specific action, because it's the piece with real, general value beyond this one particular request.",
+notice: [
+{field:"No disabling logic anywhere in this function", note:"This is exactly what makes it genuinely reusable, someone wanting just a report of inactive accounts can use this same function without it doing anything destructive."}
+],
+distractor: {
+name: "One function that finds and disables in a single step",
+why: "Locks the finding logic permanently together with one specific action. Anyone who ever wants just the list, for a report, a review before acting, anything else, has no way to get it without also triggering the disable.",
+better: "Better fit for: never as a first move, this chapter's whole point is recognizing the general piece and separating it out first."
+},
+concepts: [
+{term: "Separating general capability from specific action", explain: "The actual brain change this chapter is about: instinctively asking 'what's the reusable, general piece here?' before writing anything, rather than building one script that does everything a specific request happened to ask for."}
+]
+},
+{
+title: "Step 2 of 3 - build the specific action separately",
+task: "Now, separately, build the specific part: actually disabling the accounts this particular request asked about.",
+prefill: "",
+chips: [
+{text:"Find-InactiveADUser -DaysInactive 90", hint:"Calls the general tool from step 1, rather than duplicating its logic."},
+{text:"| Disable-ADAccount", hint:"The specific action this particular request actually wanted."}
+],
+check: function(c){ return /find-inactiveaduser/i.test(c) && /disable-adaccount/i.test(c); },
+misses: [
+{test: function(c){ return /get-aduser/i.test(c) && /disable-adaccount/i.test(c) && !/find-inactiveaduser/i.test(c); }, output: "(rewrites the same account-finding logic that already exists in the tool from step 1, instead of just calling it)", note: "Rebuilding the account-finding logic here duplicates exactly what the tool from step 1 already does. Calling Find-InactiveADUser directly, then piping into the specific action, is what actually demonstrates the separation this chapter is about."}
+],
+hint: "Find-InactiveADUser -DaysInactive 90 | Disable-ADAccount, calling the general tool from step 1, then applying the specific action this request actually wanted.",
+tokens: [
+{text:"Find-InactiveADUser -DaysInactive 90", cat:"value", note:"Calls the general tool built in step 1, rather than duplicating its logic."},
+{text:"|", cat:"pipe", note:"Sends the found accounts into the specific action."},
+{text:"Disable-ADAccount", cat:"cmdlet", note:"The actual, specific action this particular request asked for, kept entirely separate from the general finding logic."}
+],
+output: "(every account inactive 90+ days gets disabled, using the exact same finding logic from step 1, now combined with one specific action)",
+order: "This comes right after building the general tool, deliberately calling it rather than rewriting its logic, exactly demonstrating the separation this chapter is training you to make instinctively.",
+notice: [
+{field:"Calls Find-InactiveADUser, doesn't rewrite it", note:"The specific action reuses the general tool rather than duplicating its logic, exactly the relationship this chapter is about recognizing."}
+],
+distractor: {
+name: "Rewriting the account-finding logic directly here instead of calling the tool",
+why: "Duplicates logic that already exists cleanly in the general tool from step 1, and means any future improvement to how inactive accounts get found has to be made in two places instead of one.",
+better: "Better fit for: never once a general tool already exists for the underlying task."
+},
+concepts: [
+{term: "General tools get called, not duplicated", explain: "Once a general, reusable piece exists, like Find-InactiveADUser, a specific action should call it, not reimplement its logic. This is the same tools-versus-controllers relationship from an earlier lesson, now applied instinctively rather than as a formal rule."}
+]
+},
+{
+title: "Step 3 of 3 - confirm the general tool still stands alone",
+task: "Confirm the general tool from step 1 still works completely on its own, for a purpose that has nothing to do with disabling anything.",
+prefill: "",
+chips: [
+{text:"Find-InactiveADUser -DaysInactive 30", hint:"A different threshold, and used purely for a report, no disabling involved at all."},
+{text:"| Export-Csv -Path inactive-report.csv -NoTypeInformation", hint:"A completely different purpose than step 2's disabling action."}
+],
+check: function(c){ return /find-inactiveaduser/i.test(c) && /export-csv/i.test(c) && !/disable-adaccount/i.test(c); },
+misses: [],
+hint: "Find-InactiveADUser -DaysInactive 30 | Export-Csv -Path inactive-report.csv -NoTypeInformation, using the general tool for a report, proving it's genuinely useful beyond just the disabling scenario from step 2.",
+tokens: [
+{text:"Find-InactiveADUser", cat:"cmdlet", note:"The general tool from step 1, used here for something entirely unrelated to disabling anything."},
+{text:"-DaysInactive 30", cat:"param", note:"A different threshold than step 2, proof the tool is genuinely flexible, not hardcoded to one specific use."},
+{text:"Export-Csv -Path inactive-report.csv -NoTypeInformation", cat:"value", note:"A completely different downstream purpose, a report, not an action, confirming the tool's genuine reusability."}
+],
+output: "(inactive-report.csv written, a list of accounts inactive 30+ days, for review purposes, nothing disabled, nothing acted on)",
+order: "This is last, direct proof the entire point of this lesson held up: the general piece from step 1 is genuinely useful on its own, for a purpose that has nothing to do with the specific action built in step 2.",
+notice: [
+{field:"No disabling anywhere in this step", note:"Confirms the general tool genuinely stands on its own, useful for reporting, review, or any other purpose, not permanently welded to the one specific action from step 2."}
+],
+distractor: {
+name: "Only ever testing the tool combined with Disable-ADAccount",
+why: "Wouldn't actually prove the finding logic is genuinely general and reusable, it might as well have been built specifically for the disabling scenario. Using it for something entirely different, a report, is the real proof of the separation this chapter is about.",
+better: "Better fit for: never as the only test, a genuinely unrelated use case is the real confirmation."
+},
+concepts: [
+{term: "Proof of genuine separation", explain: "A general tool is only proven genuinely general once it's demonstrated working for a purpose different from the one that originally motivated building it, exactly what this step's report-only use case confirms."}
+]
+}
+]
+};
+PSLabInit(LESSON);
+</script>
+</body>
+</html>

@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Beginner 1: Meet PowerShell + the Help System</title>
+<link rel="stylesheet" href="../assets/styles.css">
+</head>
+<body>
+<div class="page">
+<a class="back-link" href="../index.html">&larr; Back to curriculum</a>
+<h1>Beginner 1 &middot; Ch 2&ndash;3: Meet PowerShell / Using the help system</h1>
+<div id="app"></div>
+</div>
+<script src="../assets/engine.js"></script>
+<script>
+var LESSON = {
+title: "Beginner 1",
+request: "Before you touch anything on this server, can you check what PowerShell version we're running, find the right cmdlet for listing processes without guessing, and make sure you know how it works before you actually run it?",
+completeMessage: "You checked the version, found the right cmdlet without guessing, read how it worked, then ran it narrowly and safely. That check-before-you-run sequence is the whole habit chapters 2 and 3 are trying to build, and it scales up to every lesson after this one.",
+nextHref: "beginner-02-running-commands.html",
+hubHref: "../index.html",
+steps: [
+{
+title: "Step 1 of 4 - check the version",
+task: "Before touching anything, check what PowerShell version this machine is running.",
+prefill: "",
+chips: [
+{text:"$PSVersionTable", hint:"A built-in variable, not a cmdlet, that always holds PowerShell's own version details."},
+{text:"Get-Host", hint:"Returns info about the current host application. Version is in there, but mixed with console and UI details that have nothing to do with the engine version."}
+],
+check: function(c){ return /\$psversiontable/i.test(c); },
+misses: [
+{test: function(c){ return /get-host/i.test(c) && !/psversiontable/i.test(c); }, output: "Name             : ConsoleHost\nVersion          : 7.4.2\nInstanceId       : 3f1e2a90-71e2-4a6a-9c7b-1a2b3c4d5e6f\nUI               : System.Management.Automation.Internal.Host.InternalHostUserInterface\nCurrentCulture   : en-US\nDebuggerEnabled  : True\nIsRunspacePushed : False", note: "That ran, and Version is technically in there, but it's buried in a pile of console and host properties that have nothing to do with the PowerShell engine itself. $PSVersionTable is the direct, standard place to check."}
+],
+hint: "This one isn't a cmdlet at all, it's a built-in variable. Everything starting with $ in PowerShell is a variable you can just look at.",
+tokens: [
+{text:"$PSVersionTable", cat:"value", note:"A built-in automatic variable. PowerShell fills it in for you the moment the session starts, no command needed to create it."}
+],
+output: "Name                           Value\n----                           -----\nPSVersion                      7.4.2\nPSEdition                      Core\nOS                              Microsoft Windows 10.0.22631\nPlatform                        Win32NT",
+order: "This is always worth checking first, especially on a machine or server you don't manage day to day. Different PowerShell versions support different syntax, so knowing what you're working with shapes everything else you try after this.",
+notice: [
+{field:"PSVersion", note:"The actual version number. Most syntax and feature differences between PowerShell versions hinge on this."},
+{field:"PSEdition", note:"Core vs Desktop. Matters for cross-platform scripts, since Desktop edition is Windows-only."}
+],
+distractor: {
+name: "Get-Host",
+why: "Get-Host returns information about the current host application, the console or terminal you're running PowerShell inside of. Version happens to be one of its properties, but it's mixed in with a dozen unrelated UI and culture settings.",
+better: "Better fit for: checking things about the console itself, like its current culture setting or whether the debugger is enabled, not the PowerShell engine version."
+},
+concepts: [
+{term: "$PSVersionTable", explain: "A built-in variable, not a cmdlet, that's always there from the moment a session starts. Anything beginning with $ in PowerShell is a variable, holding a value you can inspect any time."},
+{term: "Discoverability over memorization", explain: "You are not expected to memorize every cmdlet or variable. PowerShell is built so you can always ask it what it knows, that habit is the entire point of this lesson."}
+]
+},
+{
+title: "Step 2 of 4 - find the right cmdlet",
+task: "Now find the exact cmdlet name for listing running processes, without guessing at it.",
+prefill: "",
+chips: [
+{text:"Get-Command", hint:"The discovery cmdlet. Finds cmdlets by name pattern, verb, or noun, even ones you've never seen before."},
+{text:"-Verb Get", hint:"Narrows results to cmdlets whose verb is Get, meaning read-only, nothing gets changed."},
+{text:"-Noun Process", hint:"Narrows results to cmdlets whose noun is Process."},
+{text:"Get-Help", hint:"Looks up usage for a cmdlet you already know the name of. Not a search tool for names you don't have yet."}
+],
+check: function(c){ return /get-command/i.test(c) && (/-verb/i.test(c) || /-noun/i.test(c)) && /process/i.test(c); },
+misses: [
+{test: function(c){ return /get-help/i.test(c) && /process/i.test(c); }, output: "Get-Help : No help topics were found that match 'Process'. Try Get-Help -Online, or Update-Help to download the latest help files.", note: "That ran, but Get-Help needs a real, exact cmdlet or topic name to look up, and 'Process' on its own isn't one. Get-Command is the discovery tool for finding a name you don't have yet, Get-Help is for once you already know it."}
+],
+hint: "You're searching for a name you don't have yet, so this needs Get-Command, not Get-Help. Narrow it with -Verb Get and -Noun Process.",
+tokens: [
+{text:"Get-Command", cat:"cmdlet", note:"Searches every cmdlet, function, and alias PowerShell knows about, by name, verb, or noun."},
+{text:"-Verb", cat:"param", note:"Filters to commands using this action word."},
+{text:"Get", cat:"value", note:"Restricts the search to read-only, non-destructive commands."},
+{text:"-Noun", cat:"param", note:"Filters to commands acting on this kind of object."},
+{text:"Process", cat:"value", note:"What you're trying to find a Get- command for."}
+],
+output: "CommandType     Name                                               Version    Source\n-----------     ----                                               -------    ------\nCmdlet          Get-Process                                        7.0.0.0    Microsoft.PowerShell.Management",
+order: "Once you know your environment from step 1, the next habit is finding the right tool without guessing at spelling. Get-Command comes before Get-Help because you cannot look up help for a cmdlet name you don't have yet.",
+notice: [
+{field:"CommandType", note:"Confirms this is a real Cmdlet PowerShell recognizes, not a typo or something you'd need to write yourself."},
+{field:"Get-Process", note:"The exact, correctly-spelled name you'll reuse in the next two steps."}
+],
+distractor: {
+name: "Get-Help Process",
+why: "Get-Help needs an exact cmdlet or topic name that already exists. 'Process' by itself isn't a real topic, so the search comes back empty. Get-Help answers 'how do I use this', not 'what is this called'.",
+better: "Better fit for: once you already have a cmdlet name in hand and want its parameters or examples, exactly what step 3 of this lesson is for."
+},
+concepts: [
+{term: "Get-Command", explain: "The cmdlet for finding cmdlets. Search by verb, noun, or a wildcard pattern like *process* when you don't know the exact name yet."},
+{term: "-Verb and -Noun parameters", explain: "Most discovery cmdlets let you narrow by structure, not just free text. Thinking in Verb-Noun terms makes searching far faster than guessing full names."}
+]
+},
+{
+title: "Step 3 of 4 - read the help before running it",
+task: "You were told to be careful. Pull up help for Get-Process before actually running it.",
+prefill: "",
+chips: [
+{text:"Get-Help", hint:"Looks up detailed usage, parameters, and examples for a cmdlet you already know the name of."},
+{text:"Get-Process", hint:"The cmdlet you're looking up help for, confirmed spelled correctly from step 2."},
+{text:"-Examples", hint:"Shows just the real-world usage examples, the fastest way to see a command in action."},
+{text:"Get-Command", hint:"Confirms a cmdlet exists and shows its signature, but doesn't explain how to actually use it."}
+],
+check: function(c){ return /get-help/i.test(c) && /get-process/i.test(c) && (/-examples/i.test(c) || /-full/i.test(c)); },
+misses: [
+{test: function(c){ return /get-command/i.test(c) && /get-process/i.test(c) && !/get-help/i.test(c); }, output: "CommandType     Name                                               Version    Source\n-----------     ----                                               -------    ------\nCmdlet          Get-Process                                        7.0.0.0    Microsoft.PowerShell.Management", note: "That ran, but it's the same signature-only result from step 2. It confirms the cmdlet exists, it doesn't explain how to use it safely. Get-Help -Examples is what actually shows usage."}
+],
+hint: "You already found the name in step 2. Now look it up with Get-Help Get-Process, and add -Examples to see real usage instead of a wall of parameters.",
+tokens: [
+{text:"Get-Help", cat:"cmdlet", note:"Looks up documentation for a specific, already-known cmdlet name."},
+{text:"Get-Process", cat:"value", note:"The cmdlet you're asking about, exactly as confirmed in step 2's output."},
+{text:"-Examples", cat:"param", note:"Trims the output down to just the worked examples, skipping the full parameter reference."}
+],
+output: "NAME\n    Get-Process\n\nSYNOPSIS\n    Gets the processes that are running on the local computer.\n\n    -------------------------- EXAMPLE 1 --------------------------\n\n    PS > Get-Process\n\n    Gets all of the processes on the local computer.",
+order: "Now that you've found the cmdlet in step 2, check how it actually works before running it, especially on a system you were told to be careful with. This is the habit that prevents step 4 from being a blind guess.",
+notice: [
+{field:"SYNOPSIS", note:"A one-line summary of what the cmdlet does, worth reading before anything else."},
+{field:"EXAMPLE 1", note:"The fastest way to see a command in action without reading the full parameter reference."}
+],
+distractor: {
+name: "Get-Command Get-Process",
+why: "Get-Command already told you this cmdlet exists back in step 2. Running it again just repeats the signature, it never explains what the cmdlet actually does or how to call it with real examples.",
+better: "Better fit for: confirming a cmdlet exists at all, or checking which module it comes from, a quick existence check, not a how-to."
+},
+concepts: [
+{term: "Get-Help", explain: "The cmdlet for learning how something you've already found actually works. -Examples for quick real-world usage, -Full for every parameter and detail, -Online to open the web docs in a browser."},
+{term: "Get-Command vs Get-Help", explain: "Two different jobs: Get-Command answers 'what is this called', Get-Help answers 'how do I use it'. Mixing the two up is one of the most common habits to unlearn early on."}
+]
+},
+{
+title: "Step 4 of 4 - run it, carefully",
+task: "Now actually run it, but only for one specific process: explorer.",
+prefill: "",
+chips: [
+{text:"Get-Process", hint:"Lists running processes. Read-only, safe to run."},
+{text:"-Name", hint:"Narrows results down to one specific process by name instead of listing everything."},
+{text:"explorer", hint:"The process name you're checking for."},
+{text:"Stop-Process", hint:"Terminates a process. Same noun as Get-Process, completely different, destructive verb."}
+],
+check: function(c){ return /get-process/i.test(c) && /-name/i.test(c) && /explorer/i.test(c); },
+misses: [
+{test: function(c){ return /stop-process/i.test(c) && /explorer/i.test(c); }, output: "Confirm\nAre you sure you want to perform this action?\nPerforming the operation \"Stop-Process\" on target \"explorer (4521)\".\n[Y] Yes  [A] Yes to All  [N] No  [L] No to All  [S] Suspend  [?] Help (default is \"Y\"):", note: "That's not a typo you want to make on a live system. Stop-Process actually ends the process, it does not list it. Get- reads, Stop- kills, same noun, completely different outcome. Always check the verb before hitting enter, especially on a machine you were told to be careful with."}
+],
+hint: "Same noun as the cmdlet you looked up in step 3, but double check the verb. You want to list it, not end it. Add -Name explorer to narrow it down.",
+tokens: [
+{text:"Get-Process", cat:"cmdlet", note:"The exact, correctly-spelled cmdlet confirmed back in step 2 and explained in step 3."},
+{text:"-Name", cat:"param", note:"Narrows the result to one specific process instead of every process on the machine."},
+{text:"explorer", cat:"value", note:"The process name being checked, no .exe extension needed."}
+],
+output: "NPM(K)    PM(M)      WS(M)     CPU(s)      Id  SI ProcessName\n------    -----      -----     ------      --  -- -----------\n    45     62.10      88.45       3.22    4521   1 explorer",
+order: "Only now, after confirming the version in step 1, finding the right cmdlet in step 2, and checking how it works in step 3, do you actually run it. That order is the entire discoverability habit this lesson is teaching: check before you run, not after.",
+notice: [
+{field:"explorer", note:"Only one row came back, confirming -Name actually narrowed the results instead of listing every process on the machine."},
+{field:"Id", note:"The process ID, useful later if you ever do need to target this exact running instance of something."}
+],
+distractor: {
+name: "Stop-Process -Name explorer",
+why: "Stop-Process terminates a process instead of listing it. On a real machine this would actually end Explorer. Same noun as what you want, a completely different and destructive verb.",
+better: "Better fit for: when you deliberately do need to end a hung or unwanted process, on purpose, never as a way to check whether something is running."
+},
+concepts: [
+{term: "-Name parameter", explain: "Most Get- cmdlets accept a -Name, or a similar identity-style parameter, to narrow results down to one specific thing instead of everything."},
+{term: "Verb matters, a lot", explain: "Get- cmdlets are read-only and safe to run. Other verbs like Stop-, Remove-, or Set- change something on the system. Always read the verb before running a command you're unsure about, especially early on."}
+]
+}
+]
+};
+PSLabInit(LESSON);
+</script>
+</body>
+</html>

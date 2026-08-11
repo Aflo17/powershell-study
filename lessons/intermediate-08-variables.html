@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Intermediate 8: Variables</title>
+<link rel="stylesheet" href="../assets/styles.css">
+</head>
+<body>
+<div class="page">
+<a class="back-link" href="../index.html">&larr; Back to curriculum</a>
+<h1>Intermediate 8 &middot; Ch 16: Variables: A place to store your stuff</h1>
+<div id="app"></div>
+</div>
+<script src="../assets/engine.js"></script>
+<script>
+var LESSON = {
+title: "Intermediate 8",
+request: "That service query is slow enough I don't want to run it three separate times just to look at it three different ways. Store the result once, then show me the count, then just the stopped ones, all from that same stored result. Also, prove to me it's actually still real service objects sitting in there, not just text.",
+completeMessage: "You ran the expensive query exactly once, stored it in a variable, then reused that same stored result three different ways without ever hitting the source again. Confirming the variable still held real objects, not flattened text, ties this straight back to what Get-Member proved back in chapter 8.",
+nextHref: "intermediate-09-input-output.html",
+hubHref: "../index.html",
+steps: [
+{
+title: "Step 1 of 4 - store the result once",
+task: "Run the service query once and store the entire result in a variable.",
+prefill: "",
+chips: [
+{text:"$allServices", hint:"A variable name, prefixed with $. Where the result will be stored."},
+{text:"=", hint:"Assignment, stores whatever is on the right into the variable on the left."},
+{text:"Get-Service", hint:"The query being run, just once."}
+],
+check: function(c){ return /\$allservices\s*=\s*get-service/i.test(c); },
+misses: [
+{test: function(c){ return /get-service/i.test(c) && !/\$allservices/i.test(c) && !/=/.test(c); }, output: "Status   Name               DisplayName\n------   ----               -----------\nRunning  wuauserv           Windows Update\nStopped  Fax                Fax", note: "That runs the query and prints it, but nothing was saved anywhere. The very next command that needs this data would have to run Get-Service all over again, exactly the repeated, slow query the request wanted to avoid."}
+],
+hint: "$allServices = Get-Service stores the entire result in a variable, so it never has to be queried again for the rest of this session.",
+tokens: [
+{text:"$allServices", cat:"value", note:"A variable, a named place to store a value for later use."},
+{text:"=", cat:"param", note:"Assignment operator, stores the right-hand result into the variable on the left."},
+{text:"Get-Service", cat:"cmdlet", note:"Run exactly once here, its full result gets captured instead of just printed and discarded."}
+],
+output: "(nothing printed, the result was captured into $allServices instead of displayed)",
+order: "This runs first and only once, on purpose, everything after this step reuses the stored result instead of hitting Get-Service again.",
+notice: [
+{field:"No output printed", note:"Assignment captures the result silently instead of displaying it, that's expected, the data is now sitting in $allServices instead."}
+],
+distractor: {
+name: "Running Get-Service with no variable",
+why: "Prints the result once but keeps nothing. Every later step that needs this data would have to re-run the same slow query all over again.",
+better: "Better fit for: a quick, one-off look you don't need again."
+},
+concepts: [
+{term: "Variables", explain: "A $-prefixed name that stores a value, any value, a number, text, or a whole collection of objects, for reuse later in the same session, without re-running whatever produced it."}
+]
+},
+{
+title: "Step 2 of 4 - use the stored result: count",
+task: "Now show how many services there are, using the stored variable, not a fresh query.",
+prefill: "",
+chips: [
+{text:"$allServices.Count", hint:"Reads the Count property directly off the stored collection."},
+{text:"Get-Service | Measure-Object", hint:"Would work, but re-runs the slow query, exactly what storing it was meant to avoid."}
+],
+check: function(c){ return /\$allservices\.count/i.test(c); },
+misses: [
+{test: function(c){ return /get-service/i.test(c) && /measure-object/i.test(c) && !/\$allservices/i.test(c); }, output: "Count    : 74\nAverage  :\nSum      :", note: "That gets the count, but by running Get-Service again from scratch. $allServices already holds the exact same data from step 1, .Count reads it instantly with no repeated query."}
+],
+hint: "$allServices.Count reads the count straight off the already-stored collection, no new query needed.",
+tokens: [
+{text:"$allServices", cat:"value", note:"The variable holding the result from step 1."},
+{text:".Count", cat:"param", note:"A property giving the number of items in the stored collection, read instantly, no new query."}
+],
+output: "74",
+order: "This is the first payoff of storing the result in step 1: getting an answer instantly from memory instead of running the slow query a second time.",
+notice: [
+{field:"74", note:"The same total that a fresh Get-Service | Measure-Object would report, but retrieved instantly from the already-stored variable."}
+],
+distractor: {
+name: "Get-Service | Measure-Object",
+why: "Gets the right number, but by running the expensive query all over again. $allServices.Count reaches into data that's already sitting in memory from step 1.",
+better: "Better fit for: getting a count when you haven't already stored the result in a variable."
+},
+concepts: [
+{term: "Reusing a stored variable", explain: "Once a result is stored in a variable, later commands can read directly from it instead of re-running whatever produced it in the first place. This matters most with slow or remote queries."}
+]
+},
+{
+title: "Step 3 of 4 - use the stored result: filter",
+task: "Now show just the stopped services, still using the stored variable, not a new query.",
+prefill: "",
+chips: [
+{text:"$allServices", hint:"The same stored result from step 1."},
+{text:"Where-Object", hint:"Filters the stored collection, same as it would filter fresh pipeline output."},
+{text:"{$_.Status -eq 'Stopped'}", hint:"Same filtering condition used in an earlier lesson."}
+],
+check: function(c){ return /\$allservices/i.test(c) && /where-object/i.test(c) && /stopped/i.test(c); },
+misses: [
+{test: function(c){ return /get-service/i.test(c) && /where-object/i.test(c) && /stopped/i.test(c) && !/\$allservices/i.test(c); }, output: "Status   Name       DisplayName\n------   ----       -----------\nStopped  Fax        Fax", note: "Correct result, but from a brand new query. $allServices already holds this exact same data from step 1, piping it into Where-Object gets the identical answer without touching the source again."}
+],
+hint: "Pipe $allServices into Where-Object {$_.Status -eq 'Stopped'}, filtering the already-stored data instead of running Get-Service again.",
+tokens: [
+{text:"$allServices", cat:"value", note:"The stored result, reused for a second time now."},
+{text:"Where-Object", cat:"cmdlet", note:"Filters a collection whether it came fresh off a pipeline or out of a stored variable, works identically either way."},
+{text:"{$_.Status -eq 'Stopped'}", cat:"param", note:"Same condition from an earlier lesson."}
+],
+output: "Status   Name       DisplayName\n------   ----       -----------\nStopped  Fax        Fax",
+order: "This is the second payoff of step 1's storage, a completely different question, this time filtered instead of counted, still answered without a new query.",
+notice: [
+{field:"Same result as querying fresh", note:"Where-Object works identically on a stored variable as it would on live pipeline output, because the variable holds real objects, not flattened text."}
+],
+distractor: {
+name: "Get-Service | Where-Object again",
+why: "Works, but re-runs the slow query a second time. $allServices | Where-Object gets the identical answer from data that's already sitting in memory.",
+better: "Better fit for: when you haven't already stored the result and only need it once."
+},
+concepts: [
+{term: "Variables work like any pipeline source", explain: "A variable holding a collection of objects can be piped into Where-Object, Sort-Object, or anything else, exactly like fresh cmdlet output. That's what makes storing an expensive query once so useful."}
+]
+},
+{
+title: "Step 4 of 4 - prove it's still real objects",
+task: "Confirm the variable still holds real service objects, not just flattened text.",
+prefill: "",
+chips: [
+{text:"$allServices", hint:"The stored variable being checked."},
+{text:"Get-Member", hint:"The same discovery cmdlet from chapter 8, confirming the real shape of whatever's piped into it."}
+],
+check: function(c){ return /\$allservices/i.test(c) && /get-member/i.test(c); },
+misses: [],
+hint: "Pipe $allServices into Get-Member, same as chapter 8, to confirm it's still real ServiceController objects, not plain text.",
+tokens: [
+{text:"$allServices", cat:"value", note:"The stored variable."},
+{text:"Get-Member", cat:"cmdlet", note:"Confirms the real type and properties of whatever's stored inside, exactly as it did back in chapter 8."}
+],
+output: "   TypeName: System.ServiceProcess.ServiceController\n\nName        MemberType   Definition\n----        ----------   ----------\nStart       Method       void Start()\nStop        Method       void Stop()\nStatus      Property     ServiceControllerStatus Status {get;}",
+order: "This closes the loop on the request's second question, confirming the variable holds genuine service objects with real methods like Stop(), not just text that happens to display like one.",
+notice: [
+{field:"System.ServiceProcess.ServiceController", note:"The exact same real object type Get-Service always returns, confirming nothing was flattened just because it passed through a variable."},
+{field:"Stop, Method", note:"A real, callable action still available on the stored objects, not something a plain block of text could ever offer."}
+],
+distractor: {
+name: "Assuming it's still real without checking",
+why: "Variables can hold anything, including plain text if something upstream had reformatted the data first. Assuming instead of checking with Get-Member is exactly the habit chapter 8 warned against.",
+better: "Better fit for: never, verifying with Get-Member costs nothing and removes any doubt."
+},
+concepts: [
+{term: "Variables preserve object type", explain: "Storing a result in a variable doesn't change what kind of data it is. $allServices holds the exact same real ServiceController objects Get-Service returned, confirmed with Get-Member exactly like any other pipeline output."}
+]
+}
+]
+};
+PSLabInit(LESSON);
+</script>
+</body>
+</html>

@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Expert 2: Avoiding Bugs - Start with a Command</title>
+<link rel="stylesheet" href="../assets/styles.css">
+</head>
+<body>
+<div class="page">
+<a class="back-link" href="../index.html">&larr; Back to curriculum</a>
+<h1>Expert 2 &middot; Book 2, Ch 9: Avoiding bugs: Start with a command</h1>
+<div id="app"></div>
+</div>
+<script src="../assets/engine.js"></script>
+<script>
+var LESSON = {
+title: "Expert 2",
+request: "Before you write Get-MachineInfo as a full function, I don't want you guessing at the CIM query syntax inside a function body where mistakes are harder to spot. Get the actual working command exactly right first, as a plain one-liner you run directly, then wrap it in the function once it's already proven correct.",
+completeMessage: "You got the underlying command working perfectly on its own first, as a plain one-liner, before ever wrapping it in a function. That order matters: debugging a broken one-liner is fast and direct, debugging the same mistake buried inside a function body is slower and more confusing. Start with a working command, then build the function around it.",
+nextHref: "expert-03-basic-function-module.html",
+hubHref: "../index.html",
+steps: [
+{
+title: "Step 1 of 3 - get the raw command working first",
+task: "Before any function exists, get the actual CIM query working correctly as a plain one-liner.",
+prefill: "",
+chips: [
+{text:"Get-CimInstance", hint:"The underlying command doing the real work."},
+{text:"-ClassName Win32_OperatingSystem", hint:"The specific class being queried."},
+{text:"-ComputerName SRV01", hint:"Tested against one real, known machine first."}
+],
+check: function(c){ return /get-ciminstance/i.test(c) && /win32_operatingsystem/i.test(c) && /srv01/i.test(c); },
+misses: [
+{test: function(c){ return /function\s+get-machineinfo/i.test(c) && /get-ciminstance/i.test(c); }, output: "(if the CIM query itself has a typo or wrong class name, the error now shows up buried inside a function body, harder to isolate than a plain one-liner would have been)", note: "Writing the query directly inside the function from the start means any mistake in the query itself now has to be found buried inside function syntax, param blocks, and everything else around it. Getting the plain command right first, alone, makes any query-specific mistake immediately obvious and isolated."}
+],
+hint: "Get-CimInstance -ClassName Win32_OperatingSystem -ComputerName SRV01, run directly, no function wrapper yet, just the plain working command.",
+tokens: [
+{text:"Get-CimInstance", cat:"cmdlet", note:"The actual command doing the real work, tested completely on its own first."},
+{text:"-ClassName", cat:"param", note:"Which CIM class to query."},
+{text:"Win32_OperatingSystem", cat:"value", note:"OS details."},
+{text:"-ComputerName", cat:"param", note:"Tested against one specific, known-good machine."},
+{text:"SRV01", cat:"value", note:"A real target to confirm the query actually works before it goes anywhere near a function."}
+],
+output: "Caption               Version    BuildNumber\n-------               -------    -----------\nMicrosoft Windows...  10.0.20348 20348",
+order: "This runs first, deliberately, proving the actual underlying logic works in complete isolation, before it's wrapped in anything else that could make a future mistake harder to isolate.",
+notice: [
+{field:"Clean, correct output, and nothing else going on", note:"Confirms the query itself is fully correct before any function-related complexity gets added around it."}
+],
+distractor: {
+name: "Writing the query directly inside a function from the start",
+why: "If the query itself has a mistake, that error now shows up mixed in with param blocks, braces, and everything else around it, much harder to isolate than a plain one-liner's error would be.",
+better: "Better fit for: once the underlying command has already been proven correct on its own, exactly what step 1 establishes before wrapping it in anything."
+},
+concepts: [
+{term: "Start with a command, not a function", explain: "Get the actual underlying logic working as a plain, standalone command first. Debugging a broken one-liner directly is faster and clearer than debugging the same mistake once it's buried inside function syntax."}
+]
+},
+{
+title: "Step 2 of 3 - confirm it against a second, different machine",
+task: "Before trusting it, confirm the same command works correctly against a second, different machine too.",
+prefill: "",
+chips: [
+{text:"Get-CimInstance", hint:"Same command."},
+{text:"-ClassName Win32_OperatingSystem", hint:"Same class."},
+{text:"-ComputerName SRV02", hint:"A different machine than step 1, confirming the command isn't accidentally specific to just one target."}
+],
+check: function(c){ return /get-ciminstance/i.test(c) && /win32_operatingsystem/i.test(c) && /srv02/i.test(c); },
+misses: [],
+hint: "Get-CimInstance -ClassName Win32_OperatingSystem -ComputerName SRV02, the same command from step 1, now tested against a different machine.",
+tokens: [
+{text:"Get-CimInstance", cat:"cmdlet", note:"Same command from step 1."},
+{text:"-ClassName Win32_OperatingSystem", cat:"param", note:"Same class."},
+{text:"-ComputerName", cat:"param", note:"Same parameter."},
+{text:"SRV02", cat:"value", note:"A genuinely different machine, confirming the command's correctness isn't a coincidence specific to SRV01."}
+],
+output: "Caption               Version    BuildNumber\n-------               -------    -----------\nMicrosoft Windows...  10.0.19045 19045",
+order: "This comes right after confirming the command once, testing it a second time against a different target rules out the possibility that step 1's success was coincidental or specific to that one machine.",
+notice: [
+{field:"Different, still correct output", note:"Confirms the command genuinely works in general, not just against the one specific machine tested in step 1."}
+],
+distractor: {
+name: "Trusting step 1's single successful test as enough",
+why: "One success against one machine doesn't rule out something specific to that particular machine happening to work by coincidence. A second, different target is a more genuine confirmation.",
+better: "Better fit for: never as the only test before building a function meant to run against many different machines."
+},
+concepts: [
+{term: "Testing against more than one target", explain: "A command that works against exactly one machine might be coincidentally correct rather than genuinely correct. Testing against a second, different target before trusting it catches that difference."}
+]
+},
+{
+title: "Step 3 of 3 - now wrap it in the function",
+task: "Only now, with the command proven correct twice, wrap it in the actual Get-MachineInfo function.",
+prefill: "",
+chips: [
+{text:"function Get-MachineInfo {", hint:"The function, built around logic already proven to work."},
+{text:"param ([string[]]$ComputerName)", hint:"The parameter, informed by the design work from the previous lesson."},
+{text:"foreach ($computer in $ComputerName) { Get-CimInstance -ClassName Win32_OperatingSystem -ComputerName $computer }", hint:"The exact same proven query from steps 1 and 2, now parameterized instead of hardcoded."},
+{text:"}", hint:"Closes the function."}
+],
+check: function(c){ return /function\s+get-machineinfo/i.test(c) && /get-ciminstance/i.test(c) && /win32_operatingsystem/i.test(c) && /\$computername/i.test(c); },
+misses: [],
+hint: "function Get-MachineInfo { param ([string[]]$ComputerName) foreach ($computer in $ComputerName) { Get-CimInstance -ClassName Win32_OperatingSystem -ComputerName $computer } }, the exact proven query, now parameterized.",
+tokens: [
+{text:"function Get-MachineInfo {", cat:"cmdlet", note:"The function, now being built around already-proven logic instead of untested guesswork."},
+{text:"param ([string[]]$ComputerName)", cat:"param", note:"An array parameter, matching the multi-machine usage example from the design lesson."},
+{text:"foreach ($computer in $ComputerName) { Get-CimInstance -ClassName Win32_OperatingSystem -ComputerName $computer }", cat:"value", note:"The exact query proven correct in steps 1 and 2, just swapped from a hardcoded name to the parameter."},
+{text:"}", cat:"cmdlet", note:"Closes the function."}
+],
+output: "(Get-MachineInfo -ComputerName SRV01,SRV02 now runs the exact same query already proven correct twice, just looped across whatever machines are supplied)",
+order: "This is last, deliberately, wrapping already-proven logic in a function instead of writing and debugging both the query and the function structure at the same time.",
+notice: [
+{field:"Identical query logic to steps 1 and 2, just parameterized", note:"Nothing about the actual CIM query changed here, only how its target machine gets supplied, exactly the point of proving it correct first."}
+],
+distractor: {
+name: "Writing the function and the query logic simultaneously from scratch",
+why: "Means debugging two things at once if something goes wrong, the query itself and the function's structure, instead of trusting one already-proven piece while focusing entirely on the other.",
+better: "Better fit for: a query so trivial that separate testing genuinely wouldn't add anything, rare in practice."
+},
+concepts: [
+{term: "Wrap proven logic, don't build blind", explain: "Once a command is proven correct on its own, wrapping it in a function is a much smaller, more contained step, you're only introducing the function structure itself, not simultaneously debugging the underlying logic too."}
+]
+}
+]
+};
+PSLabInit(LESSON);
+</script>
+</body>
+</html>

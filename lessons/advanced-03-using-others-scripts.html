@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Advanced 3: Using Someone Else's Script</title>
+<link rel="stylesheet" href="../assets/styles.css">
+</head>
+<body>
+<div class="page">
+<a class="back-link" href="../index.html">&larr; Back to curriculum</a>
+<h1>Advanced 3 &middot; Ch 22: Using someone else's script</h1>
+<div id="app"></div>
+</div>
+<script src="../assets/engine.js"></script>
+<script>
+var LESSON = {
+title: "Advanced 3",
+request: "A coworker left behind Restart-WebService.ps1 and quit last month. I need to actually use it safely on WEB03, but I've never seen it before. Don't just open it blindly and start guessing, figure out what it expects and how it's meant to be called first, the same way you'd approach an unfamiliar cmdlet.",
+completeMessage: "You treated an unfamiliar script exactly like an unfamiliar cmdlet: checked its help first, read its parameter block to see what it actually expects, then ran it deliberately with a real value instead of guessing. That's the whole habit this chapter is built around, someone else's script isn't a black box if you read it the right way.",
+nextHref: "advanced-04-logic-loops.html",
+hubHref: "../index.html",
+steps: [
+{
+title: "Step 1 of 3 - check its help first",
+task: "Before reading a single line of code, check whether the script has comment-based help explaining what it does.",
+prefill: "",
+chips: [
+{text:"Get-Help", hint:"Works on scripts with comment-based help exactly like it works on built-in cmdlets."},
+{text:".\\Restart-WebService.ps1", hint:"The unfamiliar script, referenced the same way any local script is, with .\\ ."},
+{text:"-Full", hint:"Shows every section of the help, not just the short synopsis."}
+],
+check: function(c){ return /get-help/i.test(c) && /restart-webservice/i.test(c); },
+misses: [
+{test: function(c){ return /notepad|code\s|vscode/i.test(c) && /restart-webservice/i.test(c); }, output: "(the script opens in an editor, dozens of lines of code, no clear starting point for understanding what it does or expects)", note: "Opening the raw file and reading line by line works eventually, but it's slow and easy to misread. If the script has comment-based help, exactly like a real cmdlet, Get-Help surfaces a synopsis, parameter descriptions, and examples immediately, without reading the implementation at all."}
+],
+hint: "Get-Help .\\Restart-WebService.ps1 -Full works on a script with comment-based help exactly the same way it works on a built-in cmdlet.",
+tokens: [
+{text:"Get-Help", cat:"cmdlet", note:"Works identically on scripts with comment-based help as it does on built-in cmdlets."},
+{text:".\\Restart-WebService.ps1", cat:"value", note:"The unfamiliar script, referenced with the .\\ prefix required for local scripts."},
+{text:"-Full", cat:"param", note:"Shows every help section: synopsis, description, parameters, and examples, not just a short summary."}
+],
+output: "NAME\n    Restart-WebService.ps1\nSYNOPSIS\n    Restarts the IIS web service on a target computer.\nSYNTAX\n    Restart-WebService.ps1 [-ComputerName] <String> [-Force]\nPARAMETERS\n    -ComputerName <String>\n        The computer to restart the web service on. Mandatory.\n    -Force <SwitchParameter>\n        Skip the confirmation prompt.",
+order: "This is always the first move with an unfamiliar script, exactly like it would be with an unfamiliar cmdlet, checking documented help before reading raw code or guessing at usage.",
+notice: [
+{field:"-ComputerName <String>, Mandatory", note:"Already tells you the script requires a target machine, no default, exactly what you need to know before trying to run it."}
+],
+distractor: {
+name: "Opening the script in an editor and reading the code directly",
+why: "Works eventually, but is slower and more error-prone than checking documented help first, especially for a script with comment-based help already written, exactly the resource this step goes straight to instead.",
+better: "Better fit for: scripts with no comment-based help at all, where reading the parameter block directly, covered next in this lesson, becomes the only option."
+},
+concepts: [
+{term: "Get-Help works on scripts too", explain: "Any script with comment-based help (the <# ... #> block covered back in an earlier lesson) responds to Get-Help exactly like a built-in cmdlet does, synopsis, parameters, and examples included."}
+]
+},
+{
+title: "Step 2 of 3 - read the parameter block directly",
+task: "Now open the script and look specifically at its param block, to see exactly what it expects, independent of what the help claimed.",
+prefill: "",
+chips: [
+{text:"Get-Content", hint:"Reads the raw script file as text, letting you see the actual param block yourself."},
+{text:".\\Restart-WebService.ps1", hint:"Same script."},
+{text:"-TotalCount 20", hint:"Reads just the first 20 lines, usually enough to reach the param block near the top of a script."}
+],
+check: function(c){ return /get-content/i.test(c) && /restart-webservice/i.test(c); },
+misses: [
+{test: function(c){ return /get-help/i.test(c) && /restart-webservice/i.test(c) && !/get-content/i.test(c); }, output: "(same help text as step 1, already read once, doesn't show the actual code behind it)", note: "That's re-running step 1's help lookup. Help documentation is only as accurate as whoever wrote it kept it, actually reading the param block itself confirms exactly what the script's code expects, independent of what the comments claim."}
+],
+hint: "Get-Content .\\Restart-WebService.ps1 -TotalCount 20 shows the first lines of the actual script, including its real param block.",
+tokens: [
+{text:"Get-Content", cat:"cmdlet", note:"Reads the script's raw text directly, showing exactly what the code says, not just what its documentation claims."},
+{text:".\\Restart-WebService.ps1", cat:"value", note:"The script file being inspected."},
+{text:"-TotalCount", cat:"param", note:"Limits how many lines are read."},
+{text:"20", cat:"value", note:"Usually enough to reach past the comment-based help down to the actual param block."}
+],
+output: "<#\n.SYNOPSIS\nRestarts the IIS web service on a target computer.\n#>\n[CmdletBinding()]\nparam (\n    [Parameter(Mandatory=$True)]\n    [string]$ComputerName,\n    [switch]$Force\n)",
+order: "This comes after checking help, as a second, independent confirmation, help text can go stale or be wrong, the actual param block in the code cannot lie about what the script requires.",
+notice: [
+{field:"[Parameter(Mandatory=$True)]", note:"Confirms directly in the code, not just the help text, that -ComputerName really is required, matching what step 1's help claimed."}
+],
+distractor: {
+name: "Trusting the help text alone, without checking the code",
+why: "Help documentation can go stale or be wrong if the script was edited later without updating its comments. Reading the actual param block confirms what the code truly requires, independent of what any comment claims.",
+better: "Better fit for: a script you already trust and have used successfully many times before."
+},
+concepts: [
+{term: "Reading a param block directly", explain: "The definitive source of truth for what a script actually requires, independent of whatever its comment-based help claims. Worth checking directly, especially for a script you didn't write yourself."}
+]
+},
+{
+title: "Step 3 of 3 - run it deliberately",
+task: "Now, understanding exactly what it needs, actually run the script against WEB03.",
+prefill: "",
+chips: [
+{text:".\\Restart-WebService.ps1", hint:"The script, now understood."},
+{text:"-ComputerName WEB03", hint:"The required parameter, confirmed by both steps 1 and 2."}
+],
+check: function(c){ return /\.\\restart-webservice\.ps1/i.test(c) && /web03/i.test(c); },
+misses: [
+{test: function(c){ return /\.\\restart-webservice\.ps1/i.test(c) && !/computername/i.test(c) && !/web03/i.test(c); }, output: "cmdlet Restart-WebService.ps1 at command pipeline position 1\nSupply values for the following parameters:\nComputerName:", note: "Right script, but running it with no parameters at all still triggers the mandatory prompt confirmed back in step 2. Supplying -ComputerName WEB03 directly avoids the interactive stop and runs it in one deliberate command."}
+],
+hint: "Run .\\Restart-WebService.ps1 -ComputerName WEB03 directly, supplying the mandatory parameter confirmed in the previous two steps instead of waiting to be prompted.",
+tokens: [
+{text:".\\Restart-WebService.ps1", cat:"cmdlet", note:"The now-understood script, referenced with .\\ ."},
+{text:"-ComputerName", cat:"param", note:"The mandatory parameter confirmed independently by both help and the actual code."},
+{text:"WEB03", cat:"value", note:"The target machine."}
+],
+output: "(IIS web service on WEB03 restarted)",
+order: "This is last, deliberately, only running the unfamiliar script for real once its requirements were confirmed two separate ways, through documented help and through the actual code.",
+notice: [
+{field:"No mandatory prompt", note:"Confirms -ComputerName was supplied directly, based on what steps 1 and 2 already established the script needed."}
+],
+distractor: {
+name: "Running it with no parameters and just answering the prompt when asked",
+why: "Works, but skips the point of this lesson, understanding a script before running it, not stumbling into its requirements interactively one at a time.",
+better: "Better fit for: a genuinely unfamiliar interactive tool where reading ahead isn't practical."
+},
+concepts: [
+{term: "Read before you run", explain: "For any script you didn't write yourself, checking Get-Help and the actual param block first, before running it, is the same habit that makes discovering an unfamiliar cmdlet safe rather than a guessing game."}
+]
+}
+]
+};
+PSLabInit(LESSON);
+</script>
+</body>
+</html>

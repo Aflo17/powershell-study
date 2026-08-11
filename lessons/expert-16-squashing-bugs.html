@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Expert 16: Squashing Bugs</title>
+<link rel="stylesheet" href="../assets/styles.css">
+</head>
+<body>
+<div class="page">
+<a class="back-link" href="../index.html">&larr; Back to curriculum</a>
+<h1>Expert 16 &middot; Book 2, Ch 23: Squashing bugs</h1>
+<div id="app"></div>
+</div>
+<script src="../assets/engine.js"></script>
+<script>
+var LESSON = {
+title: "Expert 16",
+request: "Three different bug reports came in for Get-MachineInfo today, and I want you to actually figure out what kind of bug each one is before trying to fix anything: one won't even run, one runs but the numbers look wrong, and one runs fine and looks right but somehow still doesn't do what was actually asked. Diagnose each, don't just guess at fixes.",
+completeMessage: "You correctly identified three genuinely different kinds of bugs before touching any fix: a syntax bug that stops a script from running at all, a results bug where something runs but produces wrong data, and a logic bug where the code runs cleanly and looks right but still doesn't do what was actually intended. Diagnosing which kind you're facing is what determines where to even start looking.",
+nextHref: "expert-17-output-presentation.html",
+hubHref: "../index.html",
+steps: [
+{
+title: "Step 1 of 3 - diagnose the bug that won't even run",
+task: "The first report says the script won't run at all. Confirm this is a syntax bug, and find exactly where.",
+prefill: "",
+chips: [
+{text:"powershell -File Get-MachineInfo.ps1 -NoExit", hint:"Running the raw script directly often surfaces the exact parse error and line number immediately."},
+{text:"Get-Content Get-MachineInfo.ps1 | Select-Object -First 5", hint:"Reading the file wouldn't confirm anything about whether it actually parses correctly."}
+],
+check: function(c){ return /powershell.*-file|(-file)/i.test(c) && /get-machineinfo\.ps1/i.test(c); },
+misses: [
+{test: function(c){ return /get-content/i.test(c) && /get-machineinfo\.ps1/i.test(c) && !/-file/i.test(c); }, output: "(shows the file's text just fine, but doesn't confirm anything about whether PowerShell can actually parse it, which is the entire question for a syntax bug)", note: "Reading a script's raw text tells you nothing about whether PowerShell can actually parse it. A syntax bug is specifically about the script failing before it even begins running, actually attempting to run it is what surfaces the real parse error and its exact line number."}
+],
+hint: "Actually attempt to run the script directly, PowerShell -File Get-MachineInfo.ps1, a syntax bug typically surfaces an immediate parse error with a specific line number.",
+tokens: [
+{text:"powershell -File", cat:"cmdlet", note:"Attempts to actually run the script, surfacing a parse error immediately if the syntax itself is broken."},
+{text:"Get-MachineInfo.ps1", cat:"value", note:"The script being diagnosed."}
+],
+output: "At C:\\Scripts\\Get-MachineInfo.ps1:14 char:45\n+ ... ject @{ ComputerName = $computer OSVersion = $os.Version }\n+                                              ~~~~~~~~~\nMissing statement separator after this expression.",
+order: "This is the first bug type to diagnose, and the most immediately obvious once you actually try running it: a syntax bug prevents the script from even beginning to execute.",
+notice: [
+{field:"Missing statement separator, exact line 14", note:"A syntax bug reveals itself immediately and specifically, a missing comma between two hashtable entries, right down to the exact character position."}
+],
+distractor: {
+name: "Reading the script's text and trying to spot the problem by eye",
+why: "Possible for an experienced reader, but slow and error-prone compared to just attempting to run it, which surfaces the exact line and character of a genuine syntax problem immediately and precisely.",
+better: "Better fit for: a results or logic bug, where the script does run, and reading the code is genuinely how you'd trace the actual problem."
+},
+concepts: [
+{term: "Syntax bugs", explain: "Prevent a script from running at all. PowerShell catches these before execution even begins, and actually attempting to run the script is usually the fastest way to see the exact error and line number."}
+]
+},
+{
+title: "Step 2 of 3 - diagnose the bug where the numbers look wrong",
+task: "The second report says the script runs, but the BuildNumber values look wrong. Confirm this is a results bug.",
+prefill: "",
+chips: [
+{text:"Get-CimInstance -ClassName Win32_OperatingSystem -ComputerName SRV01", hint:"Going back to the raw underlying command, exactly the habit from an earlier lesson: verify the source data directly, not just the wrapping function."},
+{text:"| Select-Object BuildNumber", hint:"Confirming specifically what the real, correct BuildNumber value actually is."}
+],
+check: function(c){ return /get-ciminstance/i.test(c) && /buildnumber/i.test(c); },
+misses: [
+{test: function(c){ return /get-machineinfo/i.test(c) && !/get-ciminstance/i.test(c); }, output: "(re-running the same function that's already suspected of producing wrong results doesn't independently confirm what the correct value should actually be)", note: "Re-running the same function under suspicion doesn't tell you what the actual correct value should be, only that this function keeps producing the same output. Going back to the raw underlying command, the same 'start with a command' habit from an earlier lesson, confirms what the real data genuinely is."}
+],
+hint: "Get-CimInstance -ClassName Win32_OperatingSystem -ComputerName SRV01 | Select-Object BuildNumber, going back to the raw source data to confirm what the correct value actually is.",
+tokens: [
+{text:"Get-CimInstance -ClassName Win32_OperatingSystem -ComputerName SRV01", cat:"value", note:"The raw underlying command, bypassing the function under suspicion entirely."},
+{text:"Select-Object BuildNumber", cat:"cmdlet", note:"Confirming specifically what the actual, correct value is from the source."}
+],
+output: "BuildNumber\n-----------\n20348\n\n(Get-MachineInfo -ComputerName SRV01 was returning BuildNumber: 20348.0, a results bug, likely from an unintended type conversion somewhere in the function's own code)",
+order: "This comes right after diagnosing a purely syntax-level bug in step 1, a genuinely different kind of problem, the script runs cleanly but produces incorrect data somewhere along the way.",
+notice: [
+{field:"Raw source says 20348, function returns 20348.0", note:"A results bug confirmed: the script runs without error, but something inside it is subtly altering correct source data into an incorrect result."}
+],
+distractor: {
+name: "Assuming the function's output must be correct since it ran without an error",
+why: "A results bug specifically produces output with no error at all, that's exactly what makes it a distinct, trickier category than a syntax bug. Running cleanly doesn't guarantee correctness.",
+better: "Better fit for: never assuming, always confirm against the actual raw source when a result looks even slightly suspicious."
+},
+concepts: [
+{term: "Results bugs", explain: "A script that runs without any error, but produces subtly incorrect output. Diagnosed by comparing against the actual, raw underlying source data, not just re-running the same suspect function again."}
+]
+},
+{
+title: "Step 3 of 3 - diagnose the bug that runs fine but still isn't right",
+task: "The third report says the script runs cleanly and looks right, but somehow doesn't do what was actually asked. Confirm this is a logic bug.",
+prefill: "",
+chips: [
+{text:"Get-MachineInfo -ComputerName SRV01,SRV02,SRV03 | Measure-Object", hint:"Counting the actual results returned, to compare against how many were genuinely expected."}
+],
+check: function(c){ return /get-machineinfo/i.test(c) && /measure-object/i.test(c); },
+misses: [],
+hint: "Get-MachineInfo -ComputerName SRV01,SRV02,SRV03 | Measure-Object, comparing the actual count of results returned against what was genuinely expected, a logic bug often reveals itself this way.",
+tokens: [
+{text:"Get-MachineInfo -ComputerName SRV01,SRV02,SRV03", cat:"value", note:"Run against three known machines."},
+{text:"Measure-Object", cat:"cmdlet", note:"Counts the actual results, comparing against the expected count reveals whether the logic itself is doing what was actually intended."}
+],
+output: "Count    : 1\nAverage  :\nSum      :\n\n(only 1 result came back for 3 requested machines, no error anywhere, this is a logic bug, likely a break statement left inside the foreach loop from a much earlier lesson, stopping after just the first successful result)",
+order: "This is last, the trickiest category to diagnose because nothing about it looks broken on the surface, the script runs cleanly, produces plausible-looking output, and still isn't doing what was actually asked.",
+notice: [
+{field:"Count: 1, for 3 requested machines", note:"No error message anywhere, output that looks perfectly reasonable at a glance, but a genuine logic bug once you compare it against what was actually expected."}
+],
+distractor: {
+name: "Trusting the output looks fine and moving on",
+why: "This is exactly what makes a logic bug the hardest category to catch, everything about the output looks legitimate at a glance. Actually comparing the result count, or any other concrete expectation, against reality is what reveals it.",
+better: "Better fit for: never as a substitute for actually verifying against a concrete, known expectation."
+},
+concepts: [
+{term: "Logic bugs", explain: "The trickiest category: a script runs cleanly, produces no errors, and even looks plausible, but doesn't actually do what was intended. Caught by comparing real output against a concrete, known expectation, not by how clean or error-free it looks."}
+]
+}
+]
+};
+PSLabInit(LESSON);
+</script>
+</body>
+</html>

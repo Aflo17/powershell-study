@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Expert 19: Storing Data - Not in Excel!</title>
+<link rel="stylesheet" href="../assets/styles.css">
+</head>
+<body>
+<div class="page">
+<a class="back-link" href="../index.html">&larr; Back to curriculum</a>
+<h1>Expert 19 &middot; Book 2, Ch 26: Storing data, not in Excel!</h1>
+<div id="app"></div>
+</div>
+<script src="../assets/engine.js"></script>
+<script>
+var LESSON = {
+title: "Expert 19",
+request: "Someone's been pasting Get-MachineInfo results into a shared Excel file every week, and it's already a mess of conflicting versions. I want the results actually saved into a real SQL Server table instead, and I need to see both the saving and the querying-it-back-out sides working, not just one half.",
+completeMessage: "You saved real Get-MachineInfo results into an actual SQL Server table instead of another fragile, conflict-prone Excel file, and confirmed the data could be queried back out correctly. A real database beats a shared spreadsheet specifically because many people can write to it and query it reliably at the same time, without anyone's changes silently overwriting anyone else's.",
+nextHref: "expert-20-never-the-end.html",
+hubHref: "../index.html",
+steps: [
+{
+title: "Step 1 of 3 - save results into a real table",
+task: "Save the results of Get-MachineInfo into an actual SQL Server table, instead of pasting them into Excel.",
+prefill: "",
+chips: [
+{text:"Get-MachineInfo -ComputerName SRV01,SRV02,SRV03", hint:"The real results being saved."},
+{text:"| Write-SqlTableData", hint:"Writes objects directly into a SQL Server table, no manual INSERT statements needed."},
+{text:"-ServerInstance SQL01 -DatabaseName Inventory -SchemaName dbo -TableName MachineInfo", hint:"Exactly where the data actually lands."}
+],
+check: function(c){ return /get-machineinfo/i.test(c) && /write-sqltabledata/i.test(c) && /machineinfo/i.test(c); },
+misses: [
+{test: function(c){ return /export-csv/i.test(c) && /get-machineinfo/i.test(c) && !/write-sqltabledata/i.test(c); }, output: "(a CSV file is written, technically not Excel directly, but still just another single, exportable file someone has to open, edit, and potentially conflict with someone else's copy of)", note: "A CSV file solves the exact same problem Excel had, one file, one person editing at a time, real risk of conflicting versions. Write-SqlTableData actually saves the data into a genuine, shared database table multiple people can query and update reliably at the same time."}
+],
+hint: "Get-MachineInfo -ComputerName SRV01,SRV02,SRV03 | Write-SqlTableData -ServerInstance SQL01 -DatabaseName Inventory -SchemaName dbo -TableName MachineInfo, saving results into a real, shared table.",
+tokens: [
+{text:"Get-MachineInfo -ComputerName SRV01,SRV02,SRV03", cat:"value", note:"The real results to be saved, from the tool built across this whole phase."},
+{text:"Write-SqlTableData", cat:"cmdlet", note:"Writes piped-in objects directly into a SQL Server table, no manual INSERT statements required."},
+{text:"-ServerInstance", cat:"param", note:"Which SQL Server to connect to."},
+{text:"SQL01", cat:"value", note:"The actual server."},
+{text:"-DatabaseName Inventory -SchemaName dbo -TableName MachineInfo", cat:"value", note:"Exactly where the data lands, a genuine, shared database table."}
+],
+output: "(3 rows written to Inventory.dbo.MachineInfo on SQL01)",
+order: "This runs first, actually solving the original problem: results genuinely saved to a shared, reliable database table instead of another fragile, single-owner file.",
+notice: [
+{field:"3 rows written to a real database table", note:"This is the actual substance of the request, results genuinely stored somewhere multiple people can reliably access at once, not a file anyone could accidentally overwrite."}
+],
+distractor: {
+name: "Exporting to a CSV file instead",
+why: "Solves the exact same underlying problem Excel had, a single file someone has to open and edit, with real risk of conflicting versions if two people touch it around the same time. A real database table is built specifically for reliable, simultaneous shared access.",
+better: "Better fit for: a quick, one-off export meant to be opened by exactly one person, not ongoing shared data storage."
+},
+concepts: [
+{term: "Write-SqlTableData", explain: "Writes piped-in PowerShell objects directly into a SQL Server table, no manual INSERT statements required, turning a real object collection into stored, shared, queryable data."}
+]
+},
+{
+title: "Step 2 of 3 - query the data back out",
+task: "Now confirm the data actually made it in, by querying it back out.",
+prefill: "",
+chips: [
+{text:"Invoke-Sqlcmd", hint:"Runs a real SQL query against a server and returns the results as PowerShell objects."},
+{text:"-ServerInstance SQL01 -Database Inventory", hint:"Same server and database from step 1."},
+{text:"-Query \"SELECT * FROM dbo.MachineInfo\"", hint:"An actual SQL query, pulling every row back out."}
+],
+check: function(c){ return /invoke-sqlcmd/i.test(c) && /machineinfo/i.test(c); },
+misses: [
+{test: function(c){ return /write-sqltabledata/i.test(c) && !/invoke-sqlcmd/i.test(c); }, output: "(re-running the write from step 1 doesn't confirm anything about whether the data can actually be queried back out, only that writing itself still works)", note: "Re-running the write operation confirms writing still works, but says nothing about whether the data can actually be queried back out successfully, the other half of what this request specifically asked to see. Invoke-Sqlcmd is what runs a real query and confirms the data is genuinely retrievable."}
+],
+hint: "Invoke-Sqlcmd -ServerInstance SQL01 -Database Inventory -Query \"SELECT * FROM dbo.MachineInfo\", actually querying the data back out, confirming the other half of this request.",
+tokens: [
+{text:"Invoke-Sqlcmd", cat:"cmdlet", note:"Runs a real SQL query against a server and returns the results as usable PowerShell objects."},
+{text:"-ServerInstance SQL01 -Database Inventory", cat:"param", note:"Same target as step 1's write."},
+{text:"-Query", cat:"param", note:"The actual SQL query to run."},
+{text:"\"SELECT * FROM dbo.MachineInfo\"", cat:"value", note:"Pulls every row back out of the table."}
+],
+output: "ComputerName OSVersion  BuildNumber\n------------ ---------  -----------\nSRV01        10.0.20348 20348\nSRV02        10.0.19045 19045\nSRV03        10.0.22621 22621",
+order: "This comes right after saving the data, confirming the other genuinely necessary half of the request, that the data isn't just written somewhere but actually retrievable afterward too.",
+notice: [
+{field:"All 3 rows returned, matching step 1's write exactly", note:"Confirms the entire round trip, save and retrieve, genuinely works, not just one half of it."}
+],
+distractor: {
+name: "Only confirming step 1's write succeeded, without ever querying it back",
+why: "The original request specifically asked to see both the saving and the querying-it-back-out sides working. Confirming only the write leaves the actually more meaningful half, can this data genuinely be used later, unverified.",
+better: "Better fit for: never as the only confirmation when both halves were explicitly requested."
+},
+concepts: [
+{term: "Invoke-Sqlcmd", explain: "Runs a real SQL query against a server and returns the results as genuine PowerShell objects, the natural counterpart to Write-SqlTableData, confirming data saved to a database is actually retrievable afterward, not just written."}
+]
+},
+{
+title: "Step 3 of 3 - confirm the whole round trip against fresh data",
+task: "Run the entire save-then-query round trip once more, against a fresh machine, confirming the whole workflow genuinely holds up.",
+prefill: "",
+chips: [
+{text:"Get-MachineInfo -ComputerName SRV04 | Write-SqlTableData -ServerInstance SQL01 -DatabaseName Inventory -SchemaName dbo -TableName MachineInfo", hint:"The full save step from step 1, now against a brand new machine."},
+{text:"Invoke-Sqlcmd -ServerInstance SQL01 -Database Inventory -Query \"SELECT * FROM dbo.MachineInfo WHERE ComputerName = 'SRV04'\"", hint:"Querying specifically for the newly added row."}
+],
+check: function(c){ return /get-machineinfo/i.test(c) && /write-sqltabledata/i.test(c) && /invoke-sqlcmd/i.test(c) && /srv04/i.test(c); },
+misses: [],
+hint: "Run the full save-then-query round trip once more, against SRV04, a machine never used in steps 1 or 2, confirming the whole workflow genuinely holds up, not just for the original test data.",
+tokens: [
+{text:"Get-MachineInfo -ComputerName SRV04 | Write-SqlTableData ...", cat:"value", note:"The complete save step, against a genuinely new machine."},
+{text:"Invoke-Sqlcmd ... WHERE ComputerName = 'SRV04'", cat:"value", note:"Querying specifically for the newly added row, confirming it's genuinely there."}
+],
+output: "ComputerName OSVersion  BuildNumber\n------------ ---------  -----------\nSRV04        10.0.19045 19045",
+order: "This is last, a genuine end-to-end confirmation using a completely fresh machine, proving the entire save-then-query workflow works reliably, not just for the specific data used in steps 1 and 2.",
+notice: [
+{field:"SRV04, a machine never used in steps 1 or 2, successfully round-tripped", note:"This is the strongest possible confirmation, the whole workflow genuinely works for new data, not just the specific data already used to build and test it."}
+],
+distractor: {
+name: "Only re-querying the same three original machines from step 2",
+why: "Wouldn't actually prove the full save-then-query workflow works for new data, only that data already confirmed once is still sitting there. A genuinely new machine is the real end-to-end test.",
+better: "Better fit for: never as the only confirmation, fresh data is the real test of the whole round trip."
+},
+concepts: [
+{term: "Testing the full round trip with fresh data", explain: "The strongest confirmation a save-then-query workflow genuinely works is running it end to end against data that's never touched the system before, not just re-checking data already confirmed in an earlier step."}
+]
+}
+]
+};
+PSLabInit(LESSON);
+</script>
+</body>
+</html>

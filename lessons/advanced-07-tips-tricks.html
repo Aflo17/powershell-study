@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Advanced 7: Tips, Tricks, and Techniques</title>
+<link rel="stylesheet" href="../assets/styles.css">
+</head>
+<body>
+<div class="page">
+<a class="back-link" href="../index.html">&larr; Back to curriculum</a>
+<h1>Advanced 7 &middot; Ch 26: Tips, tricks, and techniques</h1>
+<div id="app"></div>
+</div>
+<script src="../assets/engine.js"></script>
+<script>
+var LESSON = {
+title: "Advanced 7",
+request: "I've got a list of server names as one long comma-separated string from a spreadsheet export, turn that into an actual array I can loop over. Then check whether 'WEB03' specifically is in that list without writing a whole loop just to check one value. Then join a different list of names back into a single comma-separated string for a report.",
+completeMessage: "You split a flat string into a real array, checked membership with -in instead of writing a manual loop just to answer a yes-or-no question, and joined a list back into a string for the report. These small operators, -split, -in, -join, are exactly the kind of everyday shortcuts this chapter is built around.",
+nextHref: "advanced-08-synthesis.html",
+hubHref: "../index.html",
+steps: [
+{
+title: "Step 1 of 3 - split a string into an array",
+task: "Turn 'WEB01,WEB02,WEB03,WEB04,WEB05' into an actual array of separate names.",
+prefill: "",
+chips: [
+{text:"'WEB01,WEB02,WEB03,WEB04,WEB05'", hint:"The flat string, as it came out of the spreadsheet."},
+{text:"-split ','", hint:"Splits a string into an array wherever the given character appears."}
+],
+check: function(c){ return /-split/i.test(c) && /,/.test(c); },
+misses: [
+{test: function(c){ return /'web01,web02,web03,web04,web05'/i.test(c) && !/-split/i.test(c); }, output: "WEB01,WEB02,WEB03,WEB04,WEB05\n(still one single string, not an array of five separate items)", note: "That's just the original flat string, unchanged. It looks like it has five names, but PowerShell still treats it as one single string value, not a collection you could loop over individually. -split actually breaks it apart into a real array."}
+],
+hint: "'WEB01,WEB02,WEB03,WEB04,WEB05' -split ',' splits the string into a real array wherever a comma appears.",
+tokens: [
+{text:"'WEB01,WEB02,WEB03,WEB04,WEB05'", cat:"value", note:"The original flat string, one single value despite looking like a list."},
+{text:"-split", cat:"param", note:"Breaks a string apart into an array, wherever the given separator appears."},
+{text:"','", cat:"value", note:"Splitting on the comma character specifically."}
+],
+output: "WEB01\nWEB02\nWEB03\nWEB04\nWEB05",
+order: "This runs first because everything else in this lesson needs a real array to work with, not a single flat string that only looks like a list.",
+notice: [
+{field:"Five separate lines", note:"Confirms this is now genuinely five distinct array elements, not one string that merely displays with commas in it."}
+],
+distractor: {
+name: "Using the flat string as-is",
+why: "It displays with commas that make it look like a list, but PowerShell still treats it as one single string value. Looping over it or checking membership on it wouldn't behave the way it would on a real array.",
+better: "Better fit for: when you actually do want the data as one plain piece of text, like printing it in a sentence."
+},
+concepts: [
+{term: "-split", explain: "Breaks a single string into an array of pieces, wherever a specified separator character or pattern appears. The opposite operation of -join, covered later in this lesson."}
+]
+},
+{
+title: "Step 2 of 3 - check if a value is in the list",
+task: "Now check whether 'WEB03' is actually in that array, without writing a full loop just to answer one yes-or-no question.",
+prefill: "",
+chips: [
+{text:"'WEB03' -in", hint:"Checks whether the left-hand value exists anywhere in the collection on the right, a single true/false answer."},
+{text:"($servers)", hint:"The array from step 1, being checked against."}
+],
+check: function(c){ return /-in/i.test(c) && /web03/i.test(c); },
+misses: [
+{test: function(c){ return /foreach/i.test(c) && /web03/i.test(c) && !/-in/i.test(c); }, output: "(works, but requires writing a full loop with an if-statement inside it, several lines just to answer a single yes-or-no question)", note: "A foreach loop with an if check inside it can answer this too, but it's a lot of code for a simple membership question. -in checks directly whether a value exists in a collection, in one line, no loop needed at all."}
+],
+hint: "'WEB03' -in $servers checks membership directly, one line, no loop needed for a simple yes-or-no question.",
+tokens: [
+{text:"'WEB03'", cat:"value", note:"The value being checked for."},
+{text:"-in", cat:"param", note:"Tests whether the left value exists anywhere within the collection on the right, returns a simple $True or $False."},
+{text:"$servers", cat:"value", note:"The array from step 1, holding the split-apart server names."}
+],
+output: "True",
+order: "This comes right after building the real array in step 1, using it for exactly the kind of quick membership check -in is built for.",
+notice: [
+{field:"True", note:"A simple boolean answer, exactly what a yes-or-no membership question should return, no loop or manual comparison required."}
+],
+distractor: {
+name: "A foreach loop with an if-statement inside",
+why: "Works, but is several lines of code to answer what's ultimately a single true-or-false question. -in does the identical check in one line.",
+better: "Better fit for: when you need to actually do something different for each matching or non-matching item, not just get a single yes-or-no answer."
+},
+concepts: [
+{term: "-in and -contains", explain: "-in checks whether a value exists within a collection (value -in collection). -contains checks the reverse direction (collection -contains value). Both answer membership questions in one line, no loop required."}
+]
+},
+{
+title: "Step 3 of 3 - join a list back into a string",
+task: "Now take a separate list of names and join it back into one comma-separated string for a report.",
+prefill: "",
+chips: [
+{text:"@('DB01','DB02','DB03')", hint:"An array of three names, built directly for this step."},
+{text:"-join ','", hint:"The reverse of -split, combines array elements back into a single string, joined by the given character."}
+],
+check: function(c){ return /-join/i.test(c) && /,/.test(c); },
+misses: [],
+hint: "@('DB01','DB02','DB03') -join ',' combines the array back into one single string, joined by commas.",
+tokens: [
+{text:"@('DB01','DB02','DB03')", cat:"value", note:"A real array of three separate names."},
+{text:"-join", cat:"param", note:"Combines array elements into a single string, the reverse operation of -split from step 1."},
+{text:"','", cat:"value", note:"Joining with a comma between each element."}
+],
+output: "DB01,DB02,DB03",
+order: "This is last, closing the loop by reversing exactly the operation step 1 performed, splitting apart versus joining back together, for two genuinely different purposes.",
+notice: [
+{field:"One single string again", note:"Confirms -join produced the flat, comma-separated text a report would actually need, the direct opposite of step 1's -split."}
+],
+distractor: {
+name: "Manually concatenating each name with commas by hand",
+why: "Works for three names, but doesn't scale, and requires carefully avoiding an extra trailing comma at the end. -join handles any length of array correctly, with zero manual string-building.",
+better: "Better fit for: never really, once you know -join exists, manual string concatenation for this purpose is just extra, error-prone work."
+},
+concepts: [
+{term: "-join", explain: "Combines every element of an array into a single string, separated by whatever character you specify. The direct reverse of -split, which breaks a string apart into an array."}
+]
+}
+]
+};
+PSLabInit(LESSON);
+</script>
+</body>
+</html>

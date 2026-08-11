@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Advanced 14: Scripts and Security</title>
+<link rel="stylesheet" href="../assets/styles.css">
+</head>
+<body>
+<div class="page">
+<a class="back-link" href="../index.html">&larr; Back to curriculum</a>
+<h1>Advanced 14 &middot; Book 2, Ch 7: Scripts and security</h1>
+<div id="app"></div>
+</div>
+<script src="../assets/engine.js"></script>
+<script>
+var LESSON = {
+title: "Advanced 14",
+request: "Someone on the team downloaded Fix-Permissions.ps1 from a random GitHub gist and wants to just run it against production. Before anyone does that, check whether it's actually digitally signed by someone we'd trust, and confirm our execution policy would even allow an unsigned script like this to run in the first place.",
+completeMessage: "You checked the script's actual digital signature instead of trusting where it came from, and confirmed exactly what RemoteSigned would and wouldn't allow for a script downloaded from the internet. Execution policy isn't a security boundary on its own, it's a safety net, and understanding exactly what it catches is the real point of this chapter.",
+nextHref: "expert-01-always-design-first.html",
+hubHref: "../index.html",
+steps: [
+{
+title: "Step 1 of 3 - check its digital signature",
+task: "Before running anything, check whether Fix-Permissions.ps1 is actually digitally signed, and by whom.",
+prefill: "",
+chips: [
+{text:"Get-AuthenticodeSignature", hint:"Checks a file's digital signature directly, confirming whether it's signed and by whom, not just whether it runs."},
+{text:".\\Fix-Permissions.ps1", hint:"The script in question."}
+],
+check: function(c){ return /get-authenticodesignature/i.test(c) && /fix-permissions/i.test(c); },
+misses: [
+{test: function(c){ return /\.\\fix-permissions\.ps1/i.test(c) && !/get-authenticodesignature/i.test(c) && !/get-content/i.test(c); }, output: "(if execution policy allows it, the script just runs, potentially against production, with zero confirmation of who actually wrote it)", note: "Running it directly, even if execution policy happens to allow it, tells you nothing about who actually wrote or signed it. Get-AuthenticodeSignature checks that directly, before the script ever gets a chance to run against anything."}
+],
+hint: "Get-AuthenticodeSignature .\\Fix-Permissions.ps1 checks the file's actual digital signature status directly.",
+tokens: [
+{text:"Get-AuthenticodeSignature", cat:"cmdlet", note:"Checks a file's digital signature status directly: signed or not, and by whom, if so."},
+{text:".\\Fix-Permissions.ps1", cat:"value", note:"The untrusted script downloaded from a random gist."}
+],
+output: "SignerCertificate                        Status                                    Path\n------------------                       ------                                    ----\n                                          NotSigned                                 Fix-Permissions.ps1",
+order: "This is always the first move for a script from an unknown or untrusted source, confirming its actual trust status directly, before reading its content or considering running it at all.",
+notice: [
+{field:"Status: NotSigned", note:"Confirms this script has no digital signature at all, exactly the kind of thing worth knowing before running it anywhere near production."}
+],
+distractor: {
+name: "Just running the script directly",
+why: "Even if execution policy happens to allow it, running it first tells you nothing in advance about who wrote it or whether it's trustworthy. Checking the signature is the step that comes before deciding whether to run anything at all.",
+better: "Better fit for: never as the first move on an unfamiliar script, though fine for a script you've already reviewed and trust."
+},
+concepts: [
+{term: "Get-AuthenticodeSignature", explain: "Checks whether a script (or any file) carries a valid digital signature, and identifies who signed it, if anyone. The concrete way to check trustworthiness, rather than assuming based on where a file came from."}
+]
+},
+{
+title: "Step 2 of 3 - read the script's actual content",
+task: "Now, since it's unsigned, actually read through the script's content before considering running it at all.",
+prefill: "",
+chips: [
+{text:"Get-Content", hint:"Reads the raw script text, letting you review exactly what it does before ever executing it."},
+{text:".\\Fix-Permissions.ps1", hint:"Same script."}
+],
+check: function(c){ return /get-content/i.test(c) && /fix-permissions/i.test(c); },
+misses: [],
+hint: "Get-Content .\\Fix-Permissions.ps1 reads the raw script text, letting you review exactly what it does before ever running it, especially important now that step 1 confirmed it's unsigned.",
+tokens: [
+{text:"Get-Content", cat:"cmdlet", note:"Reads a script's raw text directly, the same discovery habit from an earlier lesson, now applied specifically because the script failed the trust check in step 1."},
+{text:".\\Fix-Permissions.ps1", cat:"value", note:"The unsigned script being reviewed."}
+],
+output: "Get-Acl C:\\Shared | Set-Acl -Path C:\\Windows\\System32\nRemove-Item C:\\Windows\\System32\\* -Recurse -Force",
+order: "This comes right after confirming the script is unsigned, an unsigned script from an unknown source genuinely deserves a manual read before anyone considers running it, exactly what this line reveals was worth doing.",
+notice: [
+{field:"C:\\Windows\\System32, Remove-Item ... -Recurse -Force", note:"This script would have overwritten and then deleted core system files, exactly the kind of outcome that checking its signature and content upfront was meant to catch before it ran anywhere."}
+],
+distractor: {
+name: "Trusting it because it looked like it did what the gist description claimed",
+why: "A description on a random gist page is just text someone wrote, it has no relationship to what the actual script code does. Reading the real content directly is the only way to know for certain.",
+better: "Better fit for: never, a description is never a substitute for reading the actual code."
+},
+concepts: [
+{term: "Review before you run, especially unsigned scripts", explain: "An unsigned script from an unfamiliar source deserves a manual read before ever being run, exactly what this step's discovery of a destructive System32 deletion was there to catch."}
+]
+},
+{
+title: "Step 3 of 3 - confirm what execution policy actually would have done",
+task: "Now confirm whether the current execution policy would have even allowed this unsigned script to run in the first place.",
+prefill: "",
+chips: [
+{text:"Get-ExecutionPolicy", hint:"The same cmdlet from an earlier lesson, now checked specifically against this scenario."}
+],
+check: function(c){ return /get-executionpolicy/i.test(c); },
+misses: [],
+hint: "Get-ExecutionPolicy, the same cmdlet from an earlier lesson, confirms directly whether RemoteSigned would have blocked this specific unsigned script.",
+tokens: [
+{text:"Get-ExecutionPolicy", cat:"cmdlet", note:"Reports the currently effective execution policy."}
+],
+output: "RemoteSigned",
+order: "This is last, closing the loop on what execution policy actually protects against: under RemoteSigned, a locally-created script runs freely regardless of signing, but a script downloaded from the internet, exactly this gist, needs a trusted signature or it's blocked outright.",
+notice: [
+{field:"RemoteSigned, and this script is NotSigned and downloaded", note:"Since Fix-Permissions.ps1 came from a gist (an internet source) and has no signature, RemoteSigned would have actually blocked it from running at all, catching this specific danger even before steps 1 and 2's manual review."}
+],
+distractor: {
+name: "Assuming execution policy alone is enough protection",
+why: "Execution policy is a safety net against accidentally running unsigned scripts from the internet, not a comprehensive security boundary. It wouldn't have caught a signed-but-malicious script, or one run locally after being downloaded and saved first. Manually reviewing content, steps 1 and 2, still matters.",
+better: "Better fit for: catching accidental execution of unreviewed internet scripts specifically, one layer of protection, not the only one needed."
+},
+concepts: [
+{term: "Execution policy is a safety net, not a security boundary", explain: "RemoteSigned and similar policies catch accidental execution of unsigned scripts downloaded from the internet, a meaningful safety net, but not a substitute for actually reviewing what a script does, especially since policies can be bypassed or a file's 'downloaded from the internet' marker can be stripped."}
+]
+}
+]
+};
+PSLabInit(LESSON);
+</script>
+</body>
+</html>

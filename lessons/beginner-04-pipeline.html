@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Beginner 4: The Pipeline - Connecting Commands</title>
+<link rel="stylesheet" href="../assets/styles.css">
+</head>
+<body>
+<div class="page">
+<a class="back-link" href="../index.html">&larr; Back to curriculum</a>
+<h1>Beginner 4 &middot; Ch 6: The pipeline: Connecting commands</h1>
+<div id="app"></div>
+</div>
+<script src="../assets/engine.js"></script>
+<script>
+var LESSON = {
+title: "Beginner 4",
+request: "Pull a list of every service on this box and save it as a CSV I can actually open in Excel. Then there's a runaway notepad process eating memory, show me how to pipe straight into stopping it instead of doing it in two separate steps, safely.",
+completeMessage: "You exported real structured data instead of a text dump, chained a lookup straight into a destructive command instead of splitting it into two steps, and checked -WhatIf before actually running something that kills a process. That's the pipeline doing real work: less typing, and safer by default when you check first.",
+nextHref: "beginner-05-adding-commands.html",
+hubHref: "../index.html",
+steps: [
+{
+title: "Step 1 of 4 - list every service",
+task: "Start simple: get every service on this machine.",
+prefill: "",
+chips: [
+{text:"Get-Service", hint:"Lists every service PowerShell can see on this machine."},
+{text:"Get-Process", hint:"Lists running processes, not services. Different thing entirely."}
+],
+check: function(c){ return /get-service/i.test(c) && !/get-process/i.test(c); },
+misses: [],
+hint: "Just Get-Service on its own, no filtering needed yet, that comes later.",
+tokens: [
+{text:"Get-Service", cat:"cmdlet", note:"Returns every service known to this machine, as full objects, not text."}
+],
+output: "Status   Name               DisplayName\n------   ----               -----------\nRunning  Spooler            Print Spooler\nStopped  wuauserv           Windows Update\nRunning  WinDefend          Microsoft Defender Antivirus",
+order: "This is the starting point, the raw data everything else in this lesson pipes forward from.",
+notice: [
+{field:"Status, Name, DisplayName", note:"These are the actual object properties you'll be exporting and piping in the next steps, not just display columns."}
+],
+distractor: {
+name: "Get-Process",
+why: "Get-Process lists running processes, individual programs currently executing. Services are a different concept entirely, background components that can be running or stopped independent of any visible process.",
+better: "Better fit for: checking what programs are actively running right now, like you did back in the very first lesson."
+},
+concepts: [
+{term: "The pipeline connects commands", explain: "Everything in this lesson builds on one idea: a command's output can become the next command's input with a single | character, no temporary files, no copy-pasting."}
+]
+},
+{
+title: "Step 2 of 4 - export it as real CSV",
+task: "Now pipe that list into a proper CSV export, not just a text dump.",
+prefill: "",
+chips: [
+{text:"Export-Csv", hint:"Writes objects out as structured, comma-separated data, opens cleanly in Excel with real columns."},
+{text:"-Path services.csv", hint:"Where to save the file."},
+{text:"-NoTypeInformation", hint:"Skips an extra header line .NET normally adds, keeps the CSV clean for Excel."},
+{text:"Out-File", hint:"Writes plain text output, the same text you'd see in the console, not structured columns."}
+],
+check: function(c){ return /get-service/i.test(c) && /export-csv/i.test(c); },
+misses: [
+{test: function(c){ return /get-service/i.test(c) && /out-file/i.test(c) && !/export-csv/i.test(c); }, output: "(services.csv written, but opening it in Excel shows one column of plain text, formatted exactly like the console output, not separate fields)", note: "That ran, and it did create a file, but Out-File just writes the same text you'd see printed to the screen. Excel sees one big column instead of separate Status, Name, and DisplayName fields. Export-Csv is what actually produces real comma-separated columns."}
+],
+hint: "Pipe Get-Service into Export-Csv, with -Path pointing at a filename and -NoTypeInformation to keep the header clean.",
+tokens: [
+{text:"Get-Service", cat:"cmdlet", note:"Same command from step 1, now feeding into the next one via the pipe."},
+{text:"Export-Csv", cat:"cmdlet", note:"Converts objects into a real, structured CSV file with actual columns."},
+{text:"-Path", cat:"param", note:"Where the file gets saved."},
+{text:"services.csv", cat:"value", note:"The output filename."},
+{text:"-NoTypeInformation", cat:"param", note:"Skips a #TYPE header line PowerShell adds by default, which Excel doesn't need and sometimes mishandles."}
+],
+output: "(services.csv written: 41 rows, columns Status, Name, DisplayName, ready to open cleanly in Excel)",
+order: "This comes right after step 1 because Export-Csv needs objects with real properties to turn into columns, exactly what Get-Service already produces.",
+notice: [
+{field:"Status, Name, DisplayName", note:"These become actual spreadsheet columns, because Export-Csv understands object properties, not just printed text."}
+],
+distractor: {
+name: "Out-File",
+why: "Out-File captures whatever text would have printed to the console, formatted for reading, not for reopening as structured data. Reopen it in Excel and you get one messy column instead of real fields.",
+better: "Better fit for: saving a quick human-readable log of what a command printed, not data you plan to reopen and work with."
+},
+concepts: [
+{term: "Export-Csv vs Out-File", explain: "Export-Csv understands the underlying object and its properties, producing real columns. Out-File just captures the text that would have been displayed. Structured data in, structured file out, is the rule for Export-Csv, Export-Json, and Export-Xml alike."}
+]
+},
+{
+title: "Step 3 of 4 - pipe straight into stopping it",
+task: "There's a runaway notepad process. Find it and pipe it straight into stopping it, in one line instead of two.",
+prefill: "",
+chips: [
+{text:"Get-Process", hint:"Finds the process object first."},
+{text:"-Name notepad", hint:"Narrows to just the notepad process."},
+{text:"Stop-Process", hint:"Ends a process. Accepts piped-in process objects directly."},
+{text:"Stop-Process -Name notepad", hint:"Works without piping, but skips confirming what you're about to stop first."}
+],
+check: function(c){ return /get-process/i.test(c) && /notepad/i.test(c) && /\|/.test(c) && /stop-process/i.test(c); },
+misses: [
+{test: function(c){ return /^stop-process/i.test(c.trim()) && !/\|/.test(c); }, output: "(no process object shown first, notepad simply terminates immediately if a match exists)", note: "That works, but it skips ever seeing what you're about to stop, no id, no confirmation, nothing piped in to double check. Piping Get-Process into Stop-Process means you can review the exact object first, or add -WhatIf, before anything actually happens."}
+],
+hint: "Get-Process -Name notepad piped straight into Stop-Process, one line instead of finding it, then separately stopping it.",
+tokens: [
+{text:"Get-Process", cat:"cmdlet", note:"Finds the exact process object first."},
+{text:"-Name", cat:"param", note:"Narrows the search to processes named notepad."},
+{text:"notepad", cat:"value", note:"The process you're targeting."},
+{text:"|", cat:"pipe", note:"Sends the found process object straight into the next command, no retyping the name."},
+{text:"Stop-Process", cat:"cmdlet", note:"Accepts a process object piped in directly, and ends it."}
+],
+output: "(process 'notepad', Id 6104, terminated)",
+order: "This comes after you're comfortable exporting data, because piping into a command that changes the system, rather than just reading it, deserves more care. Notice step 4 adds a safety check before you'd actually do this live.",
+notice: [
+{field:"terminated", note:"Confirms the exact process, by the object piped in, was the one stopped, not a guess based on retyping the name twice."}
+],
+distractor: {
+name: "Stop-Process -Name notepad (no pipe)",
+why: "This works fine when you're sure, but it skips the step where you actually look at what Get-Process found, its Id, how many matched, before ending anything.",
+better: "Better fit for: a process you're already completely certain about and don't need to double check."
+},
+concepts: [
+{term: "Piping into commands that change things", explain: "Get- cmdlets are read-only. Piping their output into a Stop-, Remove-, or Set- cmdlet means you found the exact thing first, then acted on it, instead of guessing a name and hoping it matches."}
+]
+},
+{
+title: "Step 4 of 4 - check first before it actually runs",
+task: "Before actually stopping it live, add a safety check to see what would happen without doing it yet.",
+prefill: "",
+chips: [
+{text:"Get-Process", hint:"Same lookup as step 3."},
+{text:"-Name notepad", hint:"Same target."},
+{text:"Stop-Process", hint:"Same destructive command."},
+{text:"-WhatIf", hint:"Shows exactly what the command would do, without actually doing it."}
+],
+check: function(c){ return /get-process/i.test(c) && /notepad/i.test(c) && /stop-process/i.test(c) && /-whatif/i.test(c); },
+misses: [],
+hint: "Same pipeline as step 3, just add -WhatIf onto the end of Stop-Process to preview it instead of running it for real.",
+tokens: [
+{text:"Get-Process", cat:"cmdlet", note:"Same lookup as step 3."},
+{text:"-Name", cat:"param", note:"Same parameter."},
+{text:"notepad", cat:"value", note:"Same target."},
+{text:"|", cat:"pipe", note:"Same pipe."},
+{text:"Stop-Process", cat:"cmdlet", note:"Same command."},
+{text:"-WhatIf", cat:"param", note:"Simulates the action and prints what it would have done, without actually doing it."}
+],
+output: "What if: Performing the operation \"Stop-Process\" on target \"notepad (6104)\".",
+order: "This is last because it's the habit worth building once everything else works: preview any pipeline ending in a destructive command before letting it run for real, especially one you just built and haven't run before.",
+notice: [
+{field:"What if:", note:"Nothing actually happened, this is a dry run. Remove -WhatIf once you've confirmed the output looks right."}
+],
+distractor: {
+name: "Skipping -WhatIf",
+why: "Running the destructive command directly the first time you build a new pipeline means the first real feedback you get is whatever actually happened, with no chance to catch a mistake beforehand.",
+better: "Better fit for: a pipeline you've already tested with -WhatIf once and are confident in."
+},
+concepts: [
+{term: "-WhatIf", explain: "Most cmdlets that change the system support -WhatIf, which prints what would happen without doing it. Cheap insurance on any command you're not 100% sure about yet, especially newly built pipelines."}
+]
+}
+]
+};
+PSLabInit(LESSON);
+</script>
+</body>
+</html>

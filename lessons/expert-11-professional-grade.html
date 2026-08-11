@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Expert 11: Professional-Grade Scripting</title>
+<link rel="stylesheet" href="../assets/styles.css">
+</head>
+<body>
+<div class="page">
+<a class="back-link" href="../index.html">&larr; Back to curriculum</a>
+<h1>Expert 11 &middot; Book 2, Ch 18: Professional-grade scripting</h1>
+<div id="app"></div>
+</div>
+<script src="../assets/engine.js"></script>
+<script>
+var LESSON = {
+title: "Expert 11",
+request: "Someone else on the team is going to inherit this script eventually. Clean it up: get rid of the alias shortcuts you used while testing, rename the vague single-letter variables into something a stranger could actually understand, and stop using Write-Host and Read-Host in what's supposed to be a reusable function, not an interactive script.",
+completeMessage: "You expanded every alias into its real cmdlet name, renamed vague variables into names that actually describe what they hold, and removed Write-Host and Read-Host from the reusable function, since a real tool shouldn't demand an interactive console or block downstream piping. Three separate habits, all pointing at the same goal: code a stranger could actually maintain.",
+nextHref: "expert-12-git.html",
+hubHref: "../index.html",
+steps: [
+{
+title: "Step 1 of 3 - expand aliases into real cmdlet names",
+task: "Replace shorthand aliases with their real, full cmdlet names throughout the script.",
+prefill: "",
+chips: [
+{text:"Get-Process | Where-Object { $_.CPU -gt 50 } | Sort-Object CPU -Descending", hint:"Full cmdlet names, spelled out completely."},
+{text:"gps | ? { $_.CPU -gt 50 } | sort CPU -desc", hint:"The alias-shorthand version, fast to type interactively, but unclear to a stranger reading it later."}
+],
+check: function(c){ return /get-process/i.test(c) && /where-object/i.test(c) && /sort-object/i.test(c) && !/\bgps\b/i.test(c) && !/\b\?\s*\{/.test(c); },
+misses: [
+{test: function(c){ return /\bgps\b/i.test(c) || /\?\s*\{/.test(c); }, output: "(runs fine interactively, gps and ? are real, valid aliases, but someone unfamiliar with PowerShell shorthand has to look each one up before understanding what this line even does)", note: "Aliases like gps and ? work perfectly fine when you're typing quickly and interactively. But a script meant to be maintained by someone else should spell out real cmdlet names, gps could mean Get-Process to you and be a total mystery to a teammate seeing it for the first time."}
+],
+hint: "Replace gps with Get-Process, ? with Where-Object, sort with Sort-Object, and -desc with -Descending, full names throughout.",
+tokens: [
+{text:"Get-Process", cat:"cmdlet", note:"The full name, instead of the gps alias, immediately recognizable to anyone reading it."},
+{text:"Where-Object", cat:"cmdlet", note:"Instead of the ? alias, self-explanatory rather than requiring alias knowledge to decode."},
+{text:"Sort-Object", cat:"cmdlet", note:"Instead of sort, and -Descending instead of -desc, spelled out fully."}
+],
+output: "(identical behavior to the alias-shorthand version, but immediately readable by someone who's never memorized PowerShell's alias list)",
+order: "This is the first cleanup pass, and arguably the highest-impact one, aliases are the single most common thing that makes a working script hard for someone else to read at a glance.",
+notice: [
+{field:"Same behavior, completely different readability", note:"Nothing about what the script actually does changed, only how quickly a stranger could understand it just by reading."}
+],
+distractor: {
+name: "Leaving the fast alias-shorthand version as-is",
+why: "Runs identically, but forces anyone unfamiliar with PowerShell's aliases to look each one up before understanding the script, exactly the friction professional-grade code is meant to avoid for whoever inherits it.",
+better: "Better fit for: quick, throwaway interactive commands you're typing for yourself, never for a script meant to be handed off."
+},
+concepts: [
+{term: "Avoiding aliases in scripts", explain: "Aliases like gps, ?, and sort are fine for fast interactive typing, but a script meant to be read and maintained by someone else should spell out full cmdlet names, removing the need for the reader to already know PowerShell's alias shorthand."}
+]
+},
+{
+title: "Step 2 of 3 - rename vague variables",
+task: "Rename vague, single-letter variables into names that actually describe what they hold.",
+prefill: "",
+chips: [
+{text:"$highCpuProcesses = Get-Process | Where-Object { $_.CPU -gt 50 }", hint:"A name that describes exactly what's stored, self-explanatory to a stranger reading it."},
+{text:"$x = Get-Process | Where-Object { $_.CPU -gt 50 }", hint:"Meaningless outside the immediate context of whoever wrote it, and forgettable even to that same person a few weeks later."}
+],
+check: function(c){ return /\$highcpuprocesses/i.test(c) && !/\$x\s*=/i.test(c); },
+misses: [
+{test: function(c){ return /\$x\s*=/i.test(c) && /get-process/i.test(c); }, output: "(runs identically, but $x tells a reader nothing about what it holds, they'd have to trace back to the assignment every single time it's referenced later in the script)", note: "$x works exactly the same functionally, but carries zero information about what it actually holds. A descriptive name like $highCpuProcesses means a reader instantly understands every later reference to it, without tracing back to find the original assignment."}
+],
+hint: "$highCpuProcesses = Get-Process | Where-Object { $_.CPU -gt 50 }, a name that describes exactly what's being stored, not a meaningless single letter.",
+tokens: [
+{text:"$highCpuProcesses", cat:"value", note:"A name that immediately describes what this variable holds, no need to trace back to its assignment to understand later references."},
+{text:"=", cat:"param", note:"Assignment."},
+{text:"Get-Process | Where-Object { $_.CPU -gt 50 }", cat:"value", note:"The actual value being stored, unchanged from before, only the variable's name improved."}
+],
+output: "(identical behavior, but every later reference to $highCpuProcesses is now instantly understandable, unlike $x)",
+order: "This comes right after expanding aliases, both cleanup passes about the same underlying goal, removing the need for a reader to decode shorthand, whether that's a cmdlet alias or a meaningless variable name.",
+notice: [
+{field:"Descriptive name, same underlying value", note:"Nothing about the script's actual logic changed, purely a readability improvement for whoever inherits this code."}
+],
+distractor: {
+name: "Keeping short, single-letter variable names",
+why: "Saves a few keystrokes while writing, but costs a stranger real time and effort every time they encounter that variable later, having to trace back to its original assignment to understand what it holds.",
+better: "Better fit for: a tight loop counter used and discarded within a couple of lines, like $i in a simple for loop, genuinely conventional and clear in that narrow context."
+},
+concepts: [
+{term: "Meaningful variable names", explain: "A variable's name should describe what it holds, well enough that a reader understands every later reference without needing to trace back to the original assignment. Costs nothing extra to write, saves real time for whoever reads it later."}
+]
+},
+{
+title: "Step 3 of 3 - remove Write-Host and Read-Host from the reusable function",
+task: "Finally, remove Write-Host and Read-Host from the reusable function itself, they don't belong in something meant to be called by other scripts.",
+prefill: "",
+chips: [
+{text:"function Get-HighCpuProcesses { param ([int]$Threshold = 50) Get-Process | Where-Object { $_.CPU -gt $Threshold } }", hint:"A parameter instead of Read-Host, real pipeline output instead of Write-Host."},
+{text:"function Get-HighCpuProcesses { $Threshold = Read-Host \"Enter CPU threshold\"; Write-Host \"Checking...\"; Get-Process | Where-Object { $_.CPU -gt $Threshold } }", hint:"Forces anyone calling this function to sit at an interactive console, and mixes a status message into what should be a clean, pipeline-friendly tool."}
+],
+check: function(c){ return /function\s+get-highcpuprocesses/i.test(c) && /param/i.test(c) && !/read-host/i.test(c) && !/write-host/i.test(c); },
+misses: [
+{test: function(c){ return /read-host/i.test(c) && /function/i.test(c); }, output: "(a script calling this function from a scheduled task, or any other unattended context, hangs forever waiting for interactive input that will never come)", note: "Read-Host inside a reusable function forces an interactive prompt every single time it's called, including from a scheduled task or another script with no human present to answer it, exactly the kind of thing that turns a tool into something unusable outside a live interactive session."}
+],
+hint: "Replace Read-Host with a real parameter, [int]$Threshold = 50, and remove Write-Host entirely, a reusable function should be fully usable without any human sitting at a console.",
+tokens: [
+{text:"function Get-HighCpuProcesses {", cat:"cmdlet", note:"The reusable function, being made genuinely reusable."},
+{text:"param ([int]$Threshold = 50)", cat:"param", note:"A real parameter, replacing Read-Host, callable from anywhere, interactive session or not."},
+{text:"Get-Process | Where-Object { $_.CPU -gt $Threshold }", cat:"value", note:"Real pipeline output, with no Write-Host status message mixed in."},
+{text:"}", cat:"cmdlet", note:"Closes the function."}
+],
+output: "(Get-HighCpuProcesses -Threshold 75 now works identically whether called interactively, from another script, or from an unattended scheduled task, no human input required anywhere)",
+order: "This is last, and the most consequential of the three cleanup passes, a function still depending on Read-Host or Write-Host isn't genuinely reusable at all, it only works in exactly the interactive context it was first written in.",
+notice: [
+{field:"No Read-Host, no Write-Host, anywhere in the function", note:"This is what actually makes the function usable from a scheduled task, another script, or any unattended context, not just an interactive console session."}
+],
+distractor: {
+name: "Keeping Read-Host and Write-Host for a friendlier interactive experience",
+why: "Feels friendlier when calling the function directly at a console, but makes it completely unusable from a scheduled task or any other script calling it programmatically, exactly the reusability this whole lesson is about.",
+better: "Better fit for: a standalone interactive script meant to only ever be run directly by a human at a console, never called as a reusable piece by anything else."
+},
+concepts: [
+{term: "Avoiding Write-Host and Read-Host in reusable functions", explain: "A function meant to be called by other scripts, scheduled tasks, or anything unattended shouldn't depend on Read-Host (which blocks waiting for input that may never come) or Write-Host (which can't be captured or piped). Parameters and real pipeline output are what make a function genuinely reusable."}
+]
+}
+]
+};
+PSLabInit(LESSON);
+</script>
+</body>
+</html>

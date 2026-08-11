@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Advanced 1: Improving Your Parameterized Script</title>
+<link rel="stylesheet" href="../assets/styles.css">
+</head>
+<body>
+<div class="page">
+<a class="back-link" href="../index.html">&larr; Back to curriculum</a>
+<h1>Advanced 1 &middot; Ch 20: Improving your parameterized script</h1>
+<div id="app"></div>
+</div>
+<script src="../assets/engine.js"></script>
+<script>
+var LESSON = {
+title: "Advanced 1",
+request: "Get-DiskInventory.ps1 currently defaults to localhost if nobody supplies a computer name, but I'd rather it just ask, I don't want anyone assuming it's checking a machine it isn't. Also lock the -drivetype parameter down so it only ever accepts 3 or 2, nothing else, those are the only real disk types anyone here cares about. Turn on the advanced-script features first, that's apparently step one for both of these.",
+completeMessage: "You turned the script into an advanced function with [CmdletBinding()], made -ComputerName mandatory instead of quietly defaulting to localhost, and locked -drivetype down to only the two values that are actually valid here. All three build on each other, [CmdletBinding()] first, since PowerShell only recognizes the decorators that follow once it's turned on.",
+nextHref: "advanced-02-regex.html",
+hubHref: "../index.html",
+steps: [
+{
+title: "Step 1 of 4 - turn on advanced script features",
+task: "Before anything else, add the one line that turns this script into an advanced script.",
+prefill: "",
+chips: [
+{text:"[CmdletBinding()]", hint:"Placed as the first line after comment-based help, this single decorator unlocks the parameter attributes used in the rest of this lesson."},
+{text:"param ()", hint:"The existing parameter block, already present, not what's being added here."}
+],
+check: function(c){ return /\[cmdletbinding\(\)\]/i.test(c); },
+misses: [
+{test: function(c){ return /param\s*\(/i.test(c) && !/cmdletbinding/i.test(c); }, output: "(script runs, but Mandatory and ValidateSet attributes added later in this lesson are silently ignored without CmdletBinding)", note: "The param block alone works for basic parameters, but attributes like Mandatory and ValidateSet, which the rest of this request needs, only take effect once [CmdletBinding()] is in place, immediately before the param block."}
+],
+hint: "[CmdletBinding()] goes on its own line, immediately after the comment-based help and immediately before param(). It must come first for anything that follows to work.",
+tokens: [
+{text:"[CmdletBinding()]", cat:"param", note:"Turns a plain script into an advanced script, unlocking parameter attributes like Mandatory and ValidateSet, plus common parameters like -Verbose."}
+],
+output: "(no visible output change yet, but the script is now an advanced script, and everything in the next two steps depends on this line being here first)",
+order: "This must come before anything else in this lesson, PowerShell only recognizes parameter attributes like Mandatory or ValidateSet when CmdletBinding is already active.",
+notice: [
+{field:"Placement: right after help, right before param()", note:"CmdletBinding only works if it's in exactly this position, not buried elsewhere in the script."}
+],
+distractor: {
+name: "Skipping straight to [Parameter(Mandatory=$True)]",
+why: "Without [CmdletBinding()] turned on first, the Mandatory attribute is silently ignored, the script keeps running with its old default behavior, no prompt, no error, just quietly wrong.",
+better: "Better fit for: never on its own, Mandatory and CmdletBinding are always a package deal."
+},
+concepts: [
+{term: "[CmdletBinding()]", explain: "A single decorator that upgrades a basic script to an advanced one, unlocking parameter attributes (Mandatory, ValidateSet, and more) and PowerShell's common parameters like -Verbose and -ErrorAction."}
+]
+},
+{
+title: "Step 2 of 4 - make -computername mandatory",
+task: "Now make -computername mandatory, so the script prompts for it instead of quietly defaulting to localhost.",
+prefill: "",
+chips: [
+{text:"[Parameter(Mandatory=$True)]", hint:"Placed directly above a parameter inside the param block, forces PowerShell to prompt for a value if none is supplied."},
+{text:"$computername", hint:"The existing parameter, now with its default value removed since Mandatory replaces the need for one."}
+],
+check: function(c){ return /\[parameter\(mandatory\s*=\s*\$true\)\]/i.test(c) && /\$computername/i.test(c); },
+misses: [
+{test: function(c){ return /\$computername\s*=\s*['"]?localhost['"]?/i.test(c) && !/mandatory/i.test(c); }, output: "(script runs fine with no computer name supplied, silently defaulting to localhost, exactly the quiet assumption the request wanted removed)", note: "Leaving the default value in place means the script still quietly assumes localhost when nobody specifies otherwise. [Parameter(Mandatory=$True)] forces PowerShell to actually prompt for a value instead."}
+],
+hint: "Add [Parameter(Mandatory=$True)] directly above $computername inside the param block, and remove its default 'localhost' value since Mandatory replaces that.",
+tokens: [
+{text:"[Parameter(Mandatory=$True)]", cat:"param", note:"Forces PowerShell to prompt interactively for this parameter's value if the caller doesn't supply one."},
+{text:"$computername", cat:"value", note:"The parameter being made mandatory, no longer defaulting silently to localhost."}
+],
+output: "cmdlet Get-DiskInventory.ps1 at command pipeline position 1\nSupply values for the following parameters:\ncomputername:",
+order: "This comes right after CmdletBinding is confirmed on, since Mandatory is one of the attributes that only works once advanced-script features are turned on.",
+notice: [
+{field:"Supply values for the following parameters:", note:"Confirms PowerShell is now actually prompting, instead of silently falling back to localhost the way it did before."}
+],
+distractor: {
+name: "Just removing the default value, no Mandatory attribute",
+why: "Without a default, an unsupplied -computername parameter becomes $null instead of prompting for a real value, a script quietly querying nothing is arguably worse than one quietly querying localhost.",
+better: "Better fit for: never as a substitute for Mandatory, always pair a removed default with an explicit Mandatory attribute."
+},
+concepts: [
+{term: "Mandatory parameters", explain: "[Parameter(Mandatory=$True)] forces PowerShell to prompt for a value at run time if the caller didn't supply one, instead of silently falling back to a default or leaving the variable empty."}
+]
+},
+{
+title: "Step 3 of 4 - lock down -drivetype",
+task: "Now restrict -drivetype so it only ever accepts the values 2 or 3.",
+prefill: "",
+chips: [
+{text:"[ValidateSet(2,3)]", hint:"Placed directly above a parameter, restricts it to only the listed values, anything else is rejected before the script body even runs."},
+{text:"$drivetype = 3", hint:"The existing parameter and its default, kept as-is, ValidateSet restricts what else it can be changed to."}
+],
+check: function(c){ return /\[validateset\(2,\s*3\)\]/i.test(c) && /\$drivetype/i.test(c); },
+misses: [
+{test: function(c){ return /\$drivetype/i.test(c) && !/validateset/i.test(c); }, output: "(the script happily accepts -drivetype 99, a value that doesn't correspond to any real disk type, and just returns nothing useful)", note: "Without a ValidateSet, -drivetype accepts literally any value typed in, valid or not, and only fails much later when the query itself comes back empty. ValidateSet rejects an invalid value immediately, with a clear error, before the script body ever runs."}
+],
+hint: "Add [ValidateSet(2,3)] directly above $drivetype = 3, restricting the parameter to only those two legitimate values.",
+tokens: [
+{text:"[ValidateSet(2,3)]", cat:"param", note:"Restricts the parameter to exactly the listed values, any other input is rejected immediately with a clear error."},
+{text:"$drivetype", cat:"value", note:"The parameter being restricted, its default of 3 stays exactly as it was."}
+],
+output: "Get-DiskInventory.ps1 : Cannot validate argument on parameter 'drivetype'. The argument \"99\" does not belong to the set \"2,3\" specified by the ValidateSet attribute.",
+order: "This comes last because it builds on the same CmdletBinding foundation as Mandatory in step 2, just applied to a different parameter for a different purpose, restricting values instead of requiring one.",
+notice: [
+{field:"Cannot validate argument", note:"This is exactly the fast, clear failure you want: an invalid drive type rejected immediately, not discovered later as mysteriously empty output."}
+],
+distractor: {
+name: "Checking the value manually inside the script body",
+why: "Works, but requires writing and maintaining your own if-statement and error message by hand. ValidateSet does the same job in one line, declared right where the parameter itself is defined.",
+better: "Better fit for: validation logic too complex for a simple fixed list, that's what ValidateScript exists for instead."
+},
+concepts: [
+{term: "[ValidateSet()]", explain: "Restricts a parameter to a specific, fixed list of acceptable values. Any other input is rejected immediately with a clear error, before the script body runs, instead of failing mysteriously later on."}
+]
+},
+{
+title: "Step 4 of 4 - confirm the finished script behaves correctly",
+task: "Run the finished script with no parameters at all, and confirm it now prompts instead of silently defaulting.",
+prefill: "",
+chips: [
+{text:".\\Get-DiskInventory.ps1", hint:"Running the script with no arguments at all, to see the mandatory prompt in action."}
+],
+check: function(c){ return /\.\\get-diskinventory\.ps1/i.test(c); },
+misses: [],
+hint: "Just run .\\Get-DiskInventory.ps1 with nothing after it, the mandatory -computername parameter should immediately prompt instead of silently assuming localhost.",
+tokens: [
+{text:".\\Get-DiskInventory.ps1", cat:"cmdlet", note:"Running the finished script with zero arguments, to directly observe the mandatory prompt this lesson built."}
+],
+output: "cmdlet Get-DiskInventory.ps1 at command pipeline position 1\nSupply values for the following parameters:\ncomputername: SRV02\n\nDeviceID FreeSpace(MB) Size(GB) %Free\n-------- ------------- -------- -----\nC:       18211         120      15",
+order: "This is last, confirming everything built in steps 1 through 3 actually works together end to end: CmdletBinding enabling both attributes, Mandatory prompting instead of defaulting, and ValidateSet still guarding -drivetype in the background.",
+notice: [
+{field:"computername: (prompt)", note:"No silent localhost fallback anymore, exactly the change the request asked for."}
+],
+distractor: {
+name: "Assuming it works without actually running it",
+why: "The whole point of this final step is confirming the change with a real run, not just trusting that the edits were correct.",
+better: "Better fit for: never here, a quick real run costs nothing and confirms the behavior actually changed."
+},
+concepts: [
+{term: "Testing a parameter change", explain: "After adding Mandatory or ValidateSet attributes, running the script with no arguments (or an invalid one) is the fastest way to confirm the new behavior actually took effect."}
+]
+}
+]
+};
+PSLabInit(LESSON);
+</script>
+</body>
+</html>

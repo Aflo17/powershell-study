@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Expert 1: Always Design First</title>
+<link rel="stylesheet" href="../assets/styles.css">
+</head>
+<body>
+<div class="page">
+<a class="back-link" href="../index.html">&larr; Back to curriculum</a>
+<h1>Expert 1 &middot; Book 2, Ch 8: Always design first</h1>
+<div id="app"></div>
+</div>
+<script src="../assets/engine.js"></script>
+<script>
+var LESSON = {
+title: "Expert 1",
+request: "Before you write a single line of Get-MachineInfo, I want to see what calling it would actually look like, for a few different situations: one machine, several machines, and one where you want failures logged to a file instead of just shown on screen. Write those three example calls first. No code yet, just prove you know what the finished tool needs to support before you build it.",
+completeMessage: "You wrote the usage examples before any actual code, exactly what this chapter insists on. Those three example calls already told you everything about the parameters the real function needs: a computer name that accepts more than one value, and an optional path for logging failures. Design first isn't a formality, it's how you avoid discovering missing parameters halfway through writing the logic.",
+nextHref: "expert-02-avoiding-bugs.html",
+hubHref: "../index.html",
+steps: [
+{
+title: "Step 1 of 3 - write the single-machine example call",
+task: "Write what calling the finished tool against one machine should look like, before any code exists.",
+prefill: "",
+chips: [
+{text:"Get-MachineInfo -ComputerName SRV01", hint:"A single, plain example call, Verb-Noun name, one required-feeling parameter."}
+],
+check: function(c){ return /get-machineinfo/i.test(c) && /-computername/i.test(c) && /srv01/i.test(c); },
+misses: [],
+hint: "Get-MachineInfo -ComputerName SRV01, the simplest possible usage example, written before any actual function code exists.",
+tokens: [
+{text:"Get-MachineInfo", cat:"cmdlet", note:"The not-yet-written tool, already named Verb-Noun style even before a line of its code exists."},
+{text:"-ComputerName", cat:"param", note:"The parameter this example call already implies the function will need."},
+{text:"SRV01", cat:"value", note:"A single target machine."}
+],
+output: "(no code exists yet, this is purely a usage example, the design deliverable this chapter insists on writing first)",
+order: "This is written first, before any implementation, because a usage example forces you to decide what the finished interface looks like before getting lost in how it works internally.",
+notice: [
+{field:"No implementation anywhere", note:"This step is entirely about the interface, what a caller would type, not what happens inside the function."}
+],
+distractor: {
+name: "Jumping straight to writing the function body",
+why: "Without deciding what calling the finished tool should look like first, it's easy to end up with a function whose parameters don't actually match how people would naturally want to call it.",
+better: "Better fit for: never as the first move, design-first is specifically about deciding the interface before the implementation."
+},
+concepts: [
+{term: "Design first: usage examples", explain: "Writing example calls exactly as you'd want to type them, before any code exists, is the primary design deliverable this chapter recommends. It reveals the real parameter list before you're deep in implementation details."}
+]
+},
+{
+title: "Step 2 of 3 - write the multi-machine example call",
+task: "Now write an example call against several machines at once.",
+prefill: "",
+chips: [
+{text:"Get-MachineInfo -ComputerName SRV01,SRV02,SRV03", hint:"Reveals that -ComputerName needs to accept more than one value, an array, not just a single string."}
+],
+check: function(c){ return /get-machineinfo/i.test(c) && /-computername/i.test(c) && /srv01/i.test(c) && /srv02/i.test(c); },
+misses: [
+{test: function(c){ return /get-machineinfo/i.test(c) && /srv01/i.test(c) && !/srv02/i.test(c); }, output: "(same single-machine example from step 1, doesn't reveal anything new about the parameter's actual required shape)", note: "That's a repeat of step 1's example. Writing a multi-machine call specifically is what reveals -ComputerName needs to be typed as an array ([string[]]), not a single string, information the single-machine example alone never would have surfaced."}
+],
+hint: "Get-MachineInfo -ComputerName SRV01,SRV02,SRV03, this specific example is what reveals -ComputerName needs to accept multiple values.",
+tokens: [
+{text:"Get-MachineInfo", cat:"cmdlet", note:"Same not-yet-built tool."},
+{text:"-ComputerName", cat:"param", note:"The same parameter as step 1, but this example proves it needs to accept an array."},
+{text:"SRV01,SRV02,SRV03", cat:"value", note:"Multiple machines, comma-separated, exactly the shape that reveals the parameter's real type requirement."}
+],
+order: "This comes right after the single-machine example, and specifically because it's different, several machines instead of one, it reveals a design requirement the first example alone couldn't show.",
+output: "(still no code, but this example alone reveals that -ComputerName must be typed as [string[]], an array, not a plain [string])",
+notice: [
+{field:"Multiple comma-separated values", note:"This single example already tells you something concrete about the eventual parameter's type, before any code exists to get wrong."}
+],
+distractor: {
+name: "Assuming the single-machine example already covers this",
+why: "A parameter that only accepts one value looks identical to one that accepts several, right up until someone actually tries passing several. Writing this example specifically is what catches the difference upfront.",
+better: "Better fit for: never skipping, each meaningfully different usage scenario deserves its own example."
+},
+concepts: [
+{term: "Multiple usage examples surface different requirements", explain: "A single usage example only reveals so much. Writing several genuinely different ones, one machine, many machines, with extra options, surfaces different parameter requirements before any of them get implemented."}
+]
+},
+{
+title: "Step 3 of 3 - write the logging example call",
+task: "Now write an example call where failures should be logged to a file instead of just displayed.",
+prefill: "",
+chips: [
+{text:"Get-MachineInfo -ComputerName SRV01,SRV02,SRV03 -LogFailuresToPath C:\\Logs\\failures.txt", hint:"Reveals a whole second parameter the earlier two examples never surfaced."}
+],
+check: function(c){ return /get-machineinfo/i.test(c) && /-logfailurestopath/i.test(c); },
+misses: [
+{test: function(c){ return /get-machineinfo/i.test(c) && !/logfailurestopath/i.test(c) && /srv01/i.test(c); }, output: "(still just step 1 or 2's example, this scenario, logging failures to a file, was never actually written down)", note: "Neither earlier example mentions logging failures anywhere. Without writing this specific usage example, that entire parameter, -LogFailuresToPath, would be easy to forget about until the implementation was already underway."}
+],
+hint: "Get-MachineInfo -ComputerName SRV01,SRV02,SRV03 -LogFailuresToPath C:\\Logs\\failures.txt, this example is what reveals an entire second parameter the other two never surfaced.",
+tokens: [
+{text:"Get-MachineInfo -ComputerName SRV01,SRV02,SRV03", cat:"value", note:"Same multi-machine call from step 2."},
+{text:"-LogFailuresToPath", cat:"param", note:"A brand new parameter, only surfaced because this specific usage scenario was written down as an example."},
+{text:"C:\\Logs\\failures.txt", cat:"value", note:"Where failures should be logged, instead of just displayed."}
+],
+output: "(three finished usage examples now exist, and between them, they've already revealed every parameter the real function will need, before a single line of implementation was written)",
+order: "This is last, and completes the design deliverable: three genuinely different usage scenarios, each surfacing something the others didn't, all written before any actual code.",
+notice: [
+{field:"Three examples, two full parameters revealed", note:"-ComputerName needing to be an array, and -LogFailuresToPath existing at all, both surfaced purely from writing usage examples, before implementation began."}
+],
+distractor: {
+name: "Skipping this scenario since it seemed like an edge case",
+why: "Logging failures wasn't a hypothetical edge case, it was explicitly part of the original request. Skipping it here would mean discovering the missing parameter later, mid-implementation, exactly what design-first is meant to prevent.",
+better: "Better fit for: never skipping a genuinely requested scenario just because it's the least common one."
+},
+concepts: [
+{term: "Design deliverable: usage examples first", explain: "This chapter's core recommendation: write out how you'd want to call the finished tool, in several genuinely different scenarios, before writing any of its actual implementation. The examples themselves become the parameter design."}
+]
+}
+]
+};
+PSLabInit(LESSON);
+</script>
+</body>
+</html>

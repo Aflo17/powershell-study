@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Advanced 10: WWPD - What Would PowerShell Do?</title>
+<link rel="stylesheet" href="../assets/styles.css">
+</head>
+<body>
+<div class="page">
+<a class="back-link" href="../index.html">&larr; Back to curriculum</a>
+<h1>Advanced 10 &middot; Book 2, Ch 3: WWPD: What would PowerShell do?</h1>
+<div id="app"></div>
+</div>
+<script src="../assets/engine.js"></script>
+<script>
+var LESSON = {
+title: "Advanced 10",
+request: "I want to write a tool that finds servers low on disk space. Before you write a single line, name the function the way an actual PowerShell cmdlet would be named, not however feels natural. Then make sure it actually hands back real, usable objects, not pre-formatted text nobody else's script could reuse.",
+completeMessage: "You named the function Verb-Noun style, matching PowerShell's own built-in naming instead of whatever felt natural, and made sure it output real objects with Select-Object instead of preformatted text. Asking 'what would PowerShell itself do here' before writing anything is exactly the discipline this chapter is about.",
+nextHref: "advanced-11-parameter-binding-review.html",
+hubHref: "../index.html",
+steps: [
+{
+title: "Step 1 of 3 - name it like PowerShell would",
+task: "Pick a name for this new tool, matching the Verb-Noun convention every built-in cmdlet already follows.",
+prefill: "",
+chips: [
+{text:"Get-LowDiskServer", hint:"Get, an approved PowerShell verb meaning 'retrieve, don't change anything', paired with a singular noun describing what's returned."},
+{text:"Find-Servers-With-Low-Disk", hint:"Not how PowerShell names anything, hyphen-separated phrases and plural nouns break the convention every built-in cmdlet follows."}
+],
+check: function(c){ return /^get-lowdiskserver$/i.test(c.trim()); },
+misses: [
+{test: function(c){ return /find-servers-with-low-disk/i.test(c) || /checklowdisk/i.test(c); }, output: "(technically works as a function name, but nothing about it looks like it belongs next to Get-Service or Get-Process, and Find- isn't an approved read-only verb either)", note: "PowerShell's own cmdlets all follow Verb-Noun, using one of a fixed, approved list of verbs (Get-Verb shows them all), and a singular noun. A name like this breaks that pattern in multiple ways at once, an unapproved verb, hyphens mid-phrase, and a plural noun, none of which match how the rest of PowerShell is named."}
+],
+hint: "Get-LowDiskServer: Get is an approved, read-only verb, LowDiskServer is a singular noun describing exactly what comes back.",
+tokens: [
+{text:"Get-LowDiskServer", cat:"value", note:"Get (an approved verb meaning retrieve without changing anything) plus a singular noun, exactly how every built-in cmdlet is named."}
+],
+output: "(Get-Verb confirms 'Get' is on the official approved verb list; a name like Get-LowDiskServer would sit naturally alongside Get-Service or Get-Process)",
+order: "This comes first, before any actual code, because a tool's name is the first thing anyone using it, including future you, encounters, and matching PowerShell's own convention makes it discoverable and predictable the same way.",
+notice: [
+{field:"Get-Verb", note:"The cmdlet that lists every officially approved PowerShell verb, worth checking before inventing your own when naming a new tool."}
+],
+distractor: {
+name: "Find-Servers-With-Low-Disk",
+why: "Breaks the Verb-Noun convention in several ways at once: hyphenated multi-word phrases instead of a single noun, a plural noun, and Find isn't among the approved verbs for this kind of read-only lookup.",
+better: "Better fit for: never, matching this convention costs nothing and makes a tool immediately feel native alongside real cmdlets."
+},
+concepts: [
+{term: "Verb-Noun naming", explain: "Every PowerShell cmdlet follows Verb-Noun, using one of a fixed, approved list of verbs (checked with Get-Verb) and a singular noun. Following this convention for your own tools makes them discoverable and predictable the same way built-in cmdlets are."}
+]
+},
+{
+title: "Step 2 of 3 - produce real objects, not preformatted text",
+task: "Now make sure the tool's output is real, reusable objects, not text formatted for display.",
+prefill: "",
+chips: [
+{text:"Select-Object", hint:"Reshapes the object down to just the relevant properties, while keeping it a real, reusable object."},
+{text:"DeviceID, FreeSpaceGB", hint:"The specific properties worth keeping."},
+{text:"Format-Table", hint:"Changes only how something displays. Locks the output into text, unusable by anything piped after it."}
+],
+check: function(c){ return /select-object/i.test(c) && !/format-table/i.test(c); },
+misses: [
+{test: function(c){ return /format-table/i.test(c) && !/select-object/i.test(c); }, output: "DeviceID FreeSpaceGB\n-------- -----------\nC:       4\n\n(looks fine printed to the screen, but piping this into Export-Csv or Where-Object afterward breaks, there's no real object left underneath)", note: "This is exactly the same distinction from an earlier lesson: Format-Table only changes the display, it doesn't preserve the object underneath. A tool meant to be reused by other scripts, piped into Export-Csv, filtered further, has to hand back real objects, not preformatted text."}
+],
+hint: "Select-Object DeviceID, FreeSpaceGB keeps this a real, reusable object. Format-Table would lock the output into display-only text instead.",
+tokens: [
+{text:"Select-Object", cat:"cmdlet", note:"Reshapes an object down to specific properties while keeping it a genuine, reusable object."},
+{text:"DeviceID, FreeSpaceGB", cat:"value", note:"The properties this tool's output should actually carry."}
+],
+output: "DeviceID FreeSpaceGB\n-------- -----------\nC:       4",
+order: "This comes right after naming the tool, both steps are about the same underlying question: does this behave the way a real PowerShell tool should, in name and in output.",
+notice: [
+{field:"Still a real object, not locked-in text", note:"This output could be piped into Export-Csv, Where-Object, or Sort-Object and behave correctly, exactly what Format-Table's output could not do."}
+],
+distractor: {
+name: "Format-Table for the final output",
+why: "Looks identical on screen, but locks the output into display-only text. Anyone piping this tool's results into Export-Csv or another cmdlet afterward would find nothing real left to work with.",
+better: "Better fit for: the very last step before printing to a screen, in an interactive session, never inside a reusable tool meant to be piped further."
+},
+concepts: [
+{term: "Tools should output objects, not formatted text", explain: "A reusable tool, meant to be piped into other commands, should always hand back real objects (via Select-Object or similar), leaving formatting decisions, Format-Table, Format-List, to whoever eventually displays the result, not baked in ahead of time."}
+]
+},
+{
+title: "Step 3 of 3 - confirm it behaves like a real cmdlet",
+task: "Confirm the finished tool can be piped into something else, exactly like a built-in cmdlet could.",
+prefill: "",
+chips: [
+{text:"Get-LowDiskServer", hint:"The finished tool from steps 1 and 2."},
+{text:"Export-Csv -Path report.csv -NoTypeInformation", hint:"If step 2's output really is a reusable object, this should work cleanly, just like it would on any built-in cmdlet's output."}
+],
+check: function(c){ return /get-lowdiskserver/i.test(c) && /export-csv/i.test(c); },
+misses: [],
+hint: "Get-LowDiskServer | Export-Csv -Path report.csv -NoTypeInformation, confirming the tool's real-object output from step 2 actually works when piped further, exactly like a built-in cmdlet.",
+tokens: [
+{text:"Get-LowDiskServer", cat:"cmdlet", note:"The finished tool, named and shaped exactly like a built-in cmdlet would be."},
+{text:"Export-Csv", cat:"cmdlet", note:"A downstream command that only works cleanly on real, reusable objects, exactly the kind of check that would fail on Format-Table output."},
+{text:"-Path", cat:"param", note:"Output file."},
+{text:"report.csv", cat:"value", note:"Where the CSV is written."},
+{text:"-NoTypeInformation", cat:"param", note:"Skips a .NET type header line."}
+],
+output: "(report.csv written cleanly, one row per low-disk server, exactly as it would for any built-in cmdlet's output)",
+order: "This is last, direct proof that both earlier decisions, the Verb-Noun name and the real-object output, add up to a tool that genuinely behaves like PowerShell's own built-in cmdlets, not just something that looks similar.",
+notice: [
+{field:"Clean CSV export, no errors", note:"Confirms the tool's output really is a reusable object, not display-only text that would have broken this exact command."}
+],
+distractor: {
+name: "Just trusting it works without piping it anywhere",
+why: "The whole point of asking 'what would PowerShell do' is behaving like a real cmdlet in practice, not just in appearance. Actually piping the result somewhere is the concrete proof.",
+better: "Better fit for: never skipping this kind of check for a tool meant to be reused, though harmless to skip once you've verified the pattern enough times to trust it."
+},
+concepts: [
+{term: "WWPD: What would PowerShell do?", explain: "The core question this chapter asks before writing anything: would a built-in cmdlet name it this way, output this way, behave this way? Matching that standard is what makes a homemade tool feel native instead of bolted on."}
+]
+}
+]
+};
+PSLabInit(LESSON);
+</script>
+</body>
+</html>

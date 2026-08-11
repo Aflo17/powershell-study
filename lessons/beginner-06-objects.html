@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Beginner 6: Objects - Data by Another Name</title>
+<link rel="stylesheet" href="../assets/styles.css">
+</head>
+<body>
+<div class="page">
+<a class="back-link" href="../index.html">&larr; Back to curriculum</a>
+<h1>Beginner 6 &middot; Ch 8: Objects: Data by another name</h1>
+<div id="app"></div>
+</div>
+<script src="../assets/engine.js"></script>
+<script>
+var LESSON = {
+title: "Beginner 6",
+request: "Someone's about to write a report and needs to know what properties are actually available on a process before they start. Show me how you'd explore that, then give me just the name and CPU time, sorted highest first, and prove to me it's still real data, not just formatted text.",
+completeMessage: "You discovered what's actually on an object instead of guessing, sorted before narrowing columns, and confirmed with Get-Member that what came out the other end was still real data. That trust but verify habit, checking the object's actual shape instead of assuming, is the whole point of chapter 8.",
+nextHref: "intermediate-01-practical-interlude.html",
+hubHref: "../index.html",
+steps: [
+{
+title: "Step 1 of 4 - discover what's on the object",
+task: "Before writing anything, find out what properties and methods a process object actually has.",
+prefill: "",
+chips: [
+{text:"Get-Process", hint:"Returns process objects, the raw material you're about to inspect."},
+{text:"Get-Member", hint:"Lists every property and method on whatever object was piped into it."},
+{text:"Get-Help", hint:"Looks up documentation for the cmdlet's parameters, not the shape of the objects it returns."}
+],
+check: function(c){ return /get-process/i.test(c) && /get-member/i.test(c); },
+misses: [
+{test: function(c){ return /get-help/i.test(c) && /get-process/i.test(c) && !/get-member/i.test(c); }, output: "NAME\n    Get-Process\n\nSYNOPSIS\n    Gets the processes that are running on the local computer.", note: "That ran, but it explains the cmdlet's parameters, how to call Get-Process itself. It says nothing about what properties exist on the process objects it hands back. Get-Member answers that question instead."}
+],
+hint: "Pipe Get-Process into Get-Member to see every property and method on the object it returns, not just how to call the cmdlet itself.",
+tokens: [
+{text:"Get-Process", cat:"cmdlet", note:"Returns process objects, the thing being inspected."},
+{text:"Get-Member", cat:"cmdlet", note:"Lists every property and method that exists on whatever object flows into it."}
+],
+output: "   TypeName: System.Diagnostics.Process\n\nName                       MemberType     Definition\n----                       ----------     ----------\nKill                       Method         void Kill()\nCPU                        Property       double CPU {get;}\nId                         Property       int Id {get;}\nName                       Property       string Name {get;}\nWS                         Property       long WS {get;}",
+order: "This is always the first move when you're not sure what an object actually offers. Skipping it means guessing property names and hoping.",
+notice: [
+{field:"CPU, Property", note:"Confirms CPU is a real property you can sort or select on, not something you'd need to calculate yourself."},
+{field:"Kill, Method", note:"An action the object can perform on itself, different from a property, which just holds a value."}
+],
+distractor: {
+name: "Get-Help Get-Process",
+why: "Get-Help explains how to call the cmdlet itself, its parameters and switches. It has nothing to say about the properties of the objects the cmdlet actually returns once it runs.",
+better: "Better fit for: figuring out what parameters Get-Process accepts, like -Name or -Id, not what's on the resulting objects."
+},
+concepts: [
+{term: "Get-Member", explain: "The single most useful discovery cmdlet for output you don't recognize. Pipe anything into it and see exactly what properties and methods are available, instead of guessing."},
+{term: "Properties vs methods", explain: "A property holds a value, like CPU or Name. A method is an action the object can perform, like Kill(). Get-Member's MemberType column tells you which is which."}
+]
+},
+{
+title: "Step 2 of 4 - sort by CPU, highest first",
+task: "Now sort by CPU time, highest first.",
+prefill: "",
+chips: [
+{text:"Sort-Object", hint:"Sorts objects by a property you specify."},
+{text:"CPU", hint:"The property confirmed in step 1, now used to sort."},
+{text:"-Descending", hint:"Sorts highest to lowest instead of the default lowest to highest."}
+],
+check: function(c){ return /get-process/i.test(c) && /sort-object/i.test(c) && /cpu/i.test(c) && /-descending/i.test(c); },
+misses: [
+{test: function(c){ return /sort-object/i.test(c) && /cpu/i.test(c) && !/-descending/i.test(c); }, output: "Name                   CPU\n----                   ---\nsvchost                0.02\nnotepad                0.14\nchrome                 812.55", note: "That ran, and it did sort, but the default direction is ascending, lowest first. Chrome, the biggest CPU consumer, ends up at the very bottom instead of the top. Add -Descending to flip it."}
+],
+hint: "Sort-Object CPU sorts ascending by default. Add -Descending to get highest first.",
+tokens: [
+{text:"Get-Process", cat:"cmdlet", note:"Same object source from step 1."},
+{text:"Sort-Object", cat:"cmdlet", note:"Reorders the objects flowing through the pipeline by a chosen property."},
+{text:"CPU", cat:"value", note:"The property being sorted on, confirmed real back in step 1's Get-Member output."},
+{text:"-Descending", cat:"param", note:"Flips the default ascending order to highest-value-first."}
+],
+output: "Name                   CPU\n----                   ---\nchrome                 812.55\nnotepad                0.14\nsvchost                0.02",
+order: "This comes right after confirming CPU is a real, sortable property in step 1. Sorting happens before narrowing to specific columns in step 3, on purpose.",
+notice: [
+{field:"chrome, 812.55", note:"Now at the top, exactly what 'highest first' means, confirming -Descending worked."}
+],
+distractor: {
+name: "Sort-Object CPU (no -Descending)",
+why: "Sort-Object defaults to ascending order, smallest value first. For CPU usage that means the biggest resource consumer ends up at the bottom of the list, the opposite of what 'highest first' asked for.",
+better: "Better fit for: when ascending order is actually what you want, like sorting names alphabetically."
+},
+concepts: [
+{term: "Sort before you narrow", explain: "Sorting works on the full object and its real properties. Do it before Select-Object trims things down, not after, same principle as formatting always going last."}
+]
+},
+{
+title: "Step 3 of 4 - narrow to just Name and CPU",
+task: "Now trim it down to just the Name and CPU columns.",
+prefill: "",
+chips: [
+{text:"Select-Object", hint:"Reduces which properties actually stay on the object, not just how they're displayed."},
+{text:"Name, CPU", hint:"The two properties to keep."},
+{text:"Format-Table", hint:"Changes how something displays. Doesn't actually remove properties from the underlying object."}
+],
+check: function(c){ return /sort-object/i.test(c) && /-descending/i.test(c) && /select-object/i.test(c) && /name/i.test(c) && /cpu/i.test(c); },
+misses: [
+{test: function(c){ return /format-table/i.test(c) && /name/i.test(c) && /cpu/i.test(c) && !/select-object/i.test(c); }, output: "Name                   CPU\n----                   ---\nchrome                 812.55\nnotepad                0.14\nsvchost                0.02", note: "That looks identical on screen, but Format-Table only changes the display, the underlying object still has every original property. If you piped this further into something else, all those extra properties would still be there. Select-Object actually reduces the object itself."}
+],
+hint: "Keep the sort from step 2, and pipe into Select-Object Name, CPU to actually trim the object down to just those two properties.",
+tokens: [
+{text:"Sort-Object", cat:"cmdlet", note:"Carried over from step 2, still sorting before narrowing."},
+{text:"-Descending", cat:"param", note:"Same as step 2."},
+{text:"Select-Object", cat:"cmdlet", note:"Actually reduces the object to just the listed properties, not merely changing how it displays."},
+{text:"Name, CPU", cat:"value", note:"The two properties being kept, everything else on the object is dropped."}
+],
+output: "Name                   CPU\n----                   ---\nchrome                 812.55\nnotepad                0.14\nsvchost                0.02",
+order: "This comes after sorting because Select-Object trims the object down, and once properties are gone, you can't sort on them anymore. Sort first, narrow second, same rule as formatting.",
+notice: [
+{field:"Same two columns as Format-Table would show", note:"Looks identical on screen to the distractor's output, the real difference only shows up if you pipe this further into something else."}
+],
+distractor: {
+name: "Format-Table Name, CPU",
+why: "Format-Table changes what's displayed on screen, it doesn't touch the actual object. Every original property, Id, WS, every method, is still there underneath, just hidden from view. Pipe it further and that becomes a problem.",
+better: "Better fit for: the very last step before printing something to the screen, never in the middle of a pipeline you're still building on."
+},
+concepts: [
+{term: "Select-Object vs Format-Table", explain: "Select-Object actually reshapes the object, keeping only the properties you name. Format-Table just changes the display. They can look identical printed to the screen, and behave completely differently if you pipe the result anywhere else."}
+]
+},
+{
+title: "Step 4 of 4 - prove it's still real data",
+task: "Confirm the result is still a real, usable object and not just formatted text.",
+prefill: "",
+chips: [
+{text:"Get-Member", hint:"The same discovery tool from step 1, now checking the final result instead of the raw Get-Process output."}
+],
+check: function(c){ return /select-object/i.test(c) && /get-member/i.test(c); },
+misses: [],
+hint: "Pipe the whole thing, sort, select, and all, into Get-Member one more time to confirm what actually came out the other end.",
+tokens: [
+{text:"Get-Member", cat:"cmdlet", note:"Same discovery cmdlet from step 1, now confirming the final shape of the trimmed, sorted result."}
+],
+output: "   TypeName: Selected.System.Diagnostics.Process\n\nName    MemberType   Definition\n----    ----------   ----------\nCPU     NoteProperty double CPU=812.55\nName    NoteProperty string Name=chrome",
+order: "This is last on purpose, it closes the loop back to step 1. You started by discovering what an object offers, and you end by confirming what you built is still a real object, just a smaller one, not plain formatted text that happens to look right.",
+notice: [
+{field:"Selected.System.Diagnostics.Process", note:"Notice the type name changed slightly, Select-Object created a new, trimmed object type, still a real object, just with only the two properties you kept."},
+{field:"NoteProperty", note:"A different member type than the original Property from step 1, this is how Select-Object marks properties it explicitly copied over."}
+],
+distractor: {
+name: "Trusting it just because it looks right",
+why: "Formatted output and real trimmed objects can print identically to the screen. The only way to actually tell the difference, and confirm nothing downstream will break, is to check with Get-Member.",
+better: "Better fit for: never, really. This is the one habit chapter 8 keeps coming back to: verify, don't assume."
+},
+concepts: [
+{term: "Trust but verify objects", explain: "Two very different things, a real trimmed object and formatted display text, can look identical printed to a screen. Get-Member is how you tell them apart with certainty instead of guessing from appearances."}
+]
+}
+]
+};
+PSLabInit(LESSON);
+</script>
+</body>
+</html>

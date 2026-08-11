@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Advanced 2: Regular Expressions</title>
+<link rel="stylesheet" href="../assets/styles.css">
+</head>
+<body>
+<div class="page">
+<a class="back-link" href="../index.html">&larr; Back to curriculum</a>
+<h1>Advanced 2 &middot; Ch 21: Using regular expressions to parse text files</h1>
+<div id="app"></div>
+</div>
+<script src="../assets/engine.js"></script>
+<script>
+var LESSON = {
+title: "Advanced 2",
+request: "There's a log file, app.log, and I need every line that contains an IP address pulled out, not the whole line, just the IP address itself. Then tell me how many matches there were. This isn't something a simple -like wildcard can do, the pattern's too specific, so use a proper regular expression.",
+completeMessage: "You reached for -match instead of -like the moment the pattern got too specific for simple wildcards, pulled the actual matched text out of the automatic $matches variable instead of the whole line, and counted the results. That's the core regex workflow: match, extract from $matches, act on what you found.",
+nextHref: "advanced-03-using-others-scripts.html",
+hubHref: "../index.html",
+steps: [
+{
+title: "Step 1 of 3 - find lines containing an IP address",
+task: "Read app.log and find just the lines that contain something matching an IP address pattern.",
+prefill: "",
+chips: [
+{text:"Get-Content app.log", hint:"Reads the log file in as an array of lines."},
+{text:"Where-Object", hint:"Filters down to just the lines matching a condition."},
+{text:"{$_ -match '\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}'}", hint:"A regular expression: groups of 1-3 digits separated by literal periods, the shape of an IPv4 address."},
+{text:"{$_ -like '*.*.*.*'}", hint:"A wildcard pattern. Matches far too loosely, any text with three periods in it, not specifically digit groups."}
+],
+check: function(c){ return /get-content/i.test(c) && /where-object/i.test(c) && /-match/i.test(c) && /\\d/.test(c); },
+misses: [
+{test: function(c){ return /get-content/i.test(c) && /where-object/i.test(c) && /-like/i.test(c) && /\*\.\*\.\*\.\*/.test(c); }, output: "Line: \"see readme.txt.v2.final for details\"  (matched, but this isn't an IP address at all)", note: "-like's wildcard * matches any characters at all, it has no concept of 'digits only.' A filename with several periods in it matches just as easily as a real IP address. -match with an actual regex pattern can require digits specifically, wildcards can't express that."}
+],
+hint: "Get-Content app.log piped into Where-Object {$_ -match '\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}'}, a regex pattern describing four digit groups separated by periods.",
+tokens: [
+{text:"Get-Content", cat:"cmdlet", note:"Reads a text file's contents in as an array of lines."},
+{text:"app.log", cat:"value", note:"The file being read."},
+{text:"Where-Object", cat:"cmdlet", note:"Filters lines by a condition, in this case a regex match."},
+{text:"{$_ -match '\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}'}", cat:"param", note:"\\d matches any digit, {1,3} means 1 to 3 of them, \\. matches a literal period. Together, the shape of an IPv4 address."}
+],
+output: "2026-08-10 03:14:02 Connection from 192.168.1.42 accepted\n2026-08-10 03:15:41 Connection from 10.0.0.17 rejected",
+order: "This runs first, narrowing down to only the relevant lines before extracting anything specific from them in the next step.",
+notice: [
+{field:"Only lines with real IPs", note:"Confirms the regex correctly matched digit groups specifically, not just any text containing periods."}
+],
+distractor: {
+name: "-like '*.*.*.*'",
+why: "A wildcard pattern with no concept of digits versus letters, it matches any text containing three periods, filenames, version numbers, anything, not specifically IP addresses.",
+better: "Better fit for: simple, loose pattern matching where the exact shape of the text doesn't matter, like finding filenames ending in a certain extension."
+},
+concepts: [
+{term: "-match vs -like", explain: "-like uses simple wildcards (* and ?), fine for loose patterns. -match uses full regular expressions, capable of describing precise shapes like 'exactly this many digits, separated by literal periods,' something wildcards can't express."}
+]
+},
+{
+title: "Step 2 of 3 - extract just the IP address itself",
+task: "Now pull out just the matched IP address text from each line, not the whole line.",
+prefill: "",
+chips: [
+{text:"$matches[0]", hint:"An automatic variable PowerShell populates every time -match succeeds, holding the actual matched text."},
+{text:"ForEach-Object", hint:"Needed to check each line individually and grab its own match, since $matches only ever holds the most recent match."}
+],
+check: function(c){ return /foreach-object/i.test(c) && /-match/i.test(c) && /\$matches\[0\]/i.test(c); },
+misses: [
+{test: function(c){ return /where-object/i.test(c) && /-match/i.test(c) && !/\$matches/i.test(c); }, output: "2026-08-10 03:14:02 Connection from 192.168.1.42 accepted\n2026-08-10 03:15:41 Connection from 10.0.0.17 rejected", note: "That's step 1's result again, the whole matching lines, not the IP addresses pulled out of them. -match tells you a line matched and populates $matches with the actual matched text, but you have to reference $matches[0] to get just that piece."}
+],
+hint: "Pipe into ForEach-Object {if ($_ -match '\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}') {$matches[0]}}, checking each line individually and pulling its own match out of $matches.",
+tokens: [
+{text:"ForEach-Object", cat:"cmdlet", note:"Processes each line individually, needed because $matches only ever holds the single most recent match."},
+{text:"-match", cat:"param", note:"Same regex test as step 1, run per-line this time."},
+{text:"$matches[0]", cat:"value", note:"An automatic variable populated by -match, [0] holds the entire matched text."}
+],
+output: "192.168.1.42\n10.0.0.17",
+order: "This comes right after finding the matching lines, extracting the specific piece of text that was actually asked for instead of the whole surrounding line.",
+notice: [
+{field:"Just the IP, nothing else", note:"This is $matches[0], the exact text the regex matched, not the full log line it came from."}
+],
+distractor: {
+name: "Where-Object alone, without $matches",
+why: "Where-Object confirms which lines matched, but returns the whole original line. Getting just the matched substring itself requires referencing the automatic $matches variable that -match populates.",
+better: "Better fit for: when the whole line is actually what you want, not just the specific matched piece within it."
+},
+concepts: [
+{term: "$matches", explain: "An automatic variable PowerShell populates whenever the -match operator succeeds. $matches[0] holds the entire matched text; if the pattern has capture groups in parentheses, $matches[1], $matches[2], and so on hold each group individually."}
+]
+},
+{
+title: "Step 3 of 3 - count the results",
+task: "Now count how many IP addresses were found in total.",
+prefill: "",
+chips: [
+{text:"Measure-Object", hint:"Counts objects flowing through the pipeline."},
+{text:"| Measure-Object", hint:"Placed at the very end of the extraction pipeline from step 2."}
+],
+check: function(c){ return /foreach-object/i.test(c) && /\$matches\[0\]/i.test(c) && /measure-object/i.test(c); },
+misses: [],
+hint: "Add | Measure-Object onto the end of step 2's full pipeline, counting the extracted IP addresses.",
+tokens: [
+{text:"ForEach-Object {if ($_ -match '...') {$matches[0]}}", cat:"value", note:"Same extraction pipeline from step 2, unchanged."},
+{text:"Measure-Object", cat:"cmdlet", note:"Counts the objects reaching it, in this case the extracted IP addresses."}
+],
+output: "Count    : 2\nAverage  :\nSum      :",
+order: "This is last, a simple final tally applied to the already-extracted results from step 2, not something that needed to happen any earlier in the pipeline.",
+notice: [
+{field:"Count: 2", note:"The final answer to the original request, how many IP addresses were actually found in the log."}
+],
+distractor: {
+name: "Counting the original Get-Content lines instead",
+why: "That would count every line in the file, including ones with no IP address at all, not the number of actual matches found through the regex pipeline built in steps 1 and 2.",
+better: "Better fit for: counting the total size of the log file, a different question than how many IP addresses it contains."
+},
+concepts: [
+{term: "Measure-Object for counting", explain: "The standard way to count how many objects came out of a pipeline, appended at the very end after any filtering or extraction is already done."}
+]
+}
+]
+};
+PSLabInit(LESSON);
+</script>
+</body>
+</html>

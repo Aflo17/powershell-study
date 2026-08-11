@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Intermediate 5: Remote Control</title>
+<link rel="stylesheet" href="../assets/styles.css">
+</head>
+<body>
+<div class="page">
+<a class="back-link" href="../index.html">&larr; Back to curriculum</a>
+<h1>Intermediate 5 &middot; Ch 13: Remote control: One-to-one, and one-to-many</h1>
+<div id="app"></div>
+</div>
+<script src="../assets/engine.js"></script>
+<script>
+var LESSON = {
+title: "Intermediate 5",
+request: "I need to check whether the Windows Update service is running on all five web servers, WEB01 through WEB05, instead of RDPing into each one by hand. First confirm remoting even works against one of them, then show me a quick one-off interactive check, then the way you'd actually do this for all five machines at once, using a different account than the one you're logged in as.",
+completeMessage: "You confirmed remoting was actually working before relying on it, used Enter-PSSession for a quick one-to-one interactive look, then switched to Invoke-Command for the real one-to-many job, and supplied alternate credentials instead of assuming your current login would work everywhere. That one-to-one versus one-to-many distinction is the whole spine of this chapter.",
+nextHref: "intermediate-06-jobs.html",
+hubHref: "../index.html",
+steps: [
+{
+title: "Step 1 of 4 - confirm remoting works first",
+task: "Before trying to connect to anything, confirm remoting is actually enabled and reachable on WEB01.",
+prefill: "",
+chips: [
+{text:"Test-WSMan", hint:"Checks whether the remoting service is running and reachable on a target machine, without actually connecting a session."},
+{text:"-ComputerName WEB01", hint:"The machine to check."},
+{text:"Enter-PSSession", hint:"Actually opens a session. Not what you want yet, you're only checking readiness first."}
+],
+check: function(c){ return /test-wsman/i.test(c) && /web01/i.test(c); },
+misses: [
+{test: function(c){ return /enter-pssession/i.test(c) && /web01/i.test(c) && !/test-wsman/i.test(c); }, output: "Enter-PSSession : Connecting to remote server WEB01 failed with the following error message : WinRM cannot complete the operation.", note: "Jumping straight to a real connection attempt is how you find out remoting isn't working the hard way, with a failed session instead of a quick, cheap check. Test-WSMan confirms reachability first without committing to an actual session."}
+],
+hint: "Test-WSMan -ComputerName WEB01 checks that remoting is reachable, before you actually try connecting with anything else.",
+tokens: [
+{text:"Test-WSMan", cat:"cmdlet", note:"A lightweight check that the remoting service (WinRM) is running and reachable on the target, without opening a real session."},
+{text:"-ComputerName", cat:"param", note:"Which machine to check."},
+{text:"WEB01", cat:"value", note:"The target server."}
+],
+output: "wsmid           : http://schemas.dmtf.org/wbem/wsman/identity/1/wsmanidentity.xsd\nProtocolVersion  : http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd\nProductVendor    : Microsoft Corporation\nProductVersion   : OS: 0.0.0 SP: 0.0 Stack: 3.0",
+order: "This comes first because it's a cheap sanity check, confirming remoting is even reachable before spending effort on an actual connection in the next step.",
+notice: [
+{field:"ProductVendor: Microsoft Corporation", note:"A successful response confirms WinRM is running and answering on WEB01, remoting should work."}
+],
+distractor: {
+name: "Enter-PSSession first, no check",
+why: "This jumps straight to a real connection attempt. If remoting isn't enabled or reachable, you get a connection failure with less specific information than a dedicated readiness check would have given you upfront.",
+better: "Better fit for: once you already know remoting works and just want to connect."
+},
+concepts: [
+{term: "Test-WSMan", explain: "A lightweight readiness check for PowerShell remoting (WinRM), confirming a target machine is reachable and listening before you commit to opening an actual session against it."}
+]
+},
+{
+title: "Step 2 of 4 - a quick one-to-one check",
+task: "Now open an interactive session with just WEB01 for a quick one-off look around.",
+prefill: "",
+chips: [
+{text:"Enter-PSSession", hint:"Opens an interactive remote session with exactly one machine, your prompt changes to show you're 'inside' it."},
+{text:"-ComputerName WEB01", hint:"The single machine you're connecting to."},
+{text:"Invoke-Command", hint:"Runs a command remotely without an interactive session. Better suited to many machines at once, covered in the next step."}
+],
+check: function(c){ return /enter-pssession/i.test(c) && /web01/i.test(c); },
+misses: [
+{test: function(c){ return /invoke-command/i.test(c) && /web01/i.test(c) && !/enter-pssession/i.test(c); }, output: "(runs a single command against WEB01 and returns immediately, no interactive prompt)", note: "That works, but it's built for running one specific command and getting a result back, not for poking around interactively. Enter-PSSession is the one-to-one tool that puts you 'inside' the remote machine's prompt for a quick, exploratory look."}
+],
+hint: "Enter-PSSession -ComputerName WEB01 opens an interactive session, your prompt changes to show you're connected to that one machine.",
+tokens: [
+{text:"Enter-PSSession", cat:"cmdlet", note:"Opens a one-to-one interactive remote session."},
+{text:"-ComputerName", cat:"param", note:"Which single machine to connect to."},
+{text:"WEB01", cat:"value", note:"The target."}
+],
+output: "[WEB01]: PS C:\\Users\\jsmith\\Documents>",
+order: "This comes right after confirming reachability, and before the one-to-many approach in step 3, establishing the one-to-one half of this chapter's core distinction.",
+notice: [
+{field:"[WEB01]: PS C:\\...>", note:"The prompt itself changed to show WEB01's name, confirming you're now interactively 'inside' that one remote machine."}
+],
+distractor: {
+name: "Invoke-Command for a quick interactive look",
+why: "Invoke-Command runs a specific command and returns, it doesn't give you an ongoing interactive prompt to poke around in. For a genuine one-off exploratory check on a single machine, Enter-PSSession is the more natural fit.",
+better: "Better fit for: running the same specific command against several machines at once, exactly what the next step needs."
+},
+concepts: [
+{term: "One-to-one vs one-to-many", explain: "Enter-PSSession connects you interactively to exactly one remote machine, like RDP but text-based. Invoke-Command runs a specific command against one or many machines without an interactive prompt. Pick based on whether you're exploring or executing."}
+]
+},
+{
+title: "Step 3 of 4 - check all five machines at once",
+task: "Now check whether the Windows Update service is running, but across all five web servers at once, not one at a time.",
+prefill: "",
+chips: [
+{text:"Invoke-Command", hint:"Runs a script block against one or many machines at once and returns the results, no interactive session needed."},
+{text:"-ComputerName WEB01,WEB02,WEB03,WEB04,WEB05", hint:"A comma-separated list, all five targets in a single command."},
+{text:"-ScriptBlock {Get-Service wuauserv}", hint:"The command to run on every target machine."}
+],
+check: function(c){ return /invoke-command/i.test(c) && /web01/i.test(c) && /web05/i.test(c) && /scriptblock/i.test(c) && /wuauserv/i.test(c); },
+misses: [
+{test: function(c){ return /enter-pssession/i.test(c) && /web01/i.test(c) && /wuauserv/i.test(c); }, output: "(only ever connects to one machine at a time, would need to be manually repeated five separate times, once per server)", note: "Enter-PSSession only ever connects to one machine per session. Doing this for five servers means manually repeating the whole process five times. Invoke-Command with a comma-separated computer list runs the same command against all five in one call."}
+],
+hint: "Invoke-Command -ComputerName WEB01,WEB02,WEB03,WEB04,WEB05 -ScriptBlock {Get-Service wuauserv}, one command, five machines, no interactive session.",
+tokens: [
+{text:"Invoke-Command", cat:"cmdlet", note:"The one-to-many remoting cmdlet, runs a script block against a list of machines."},
+{text:"-ComputerName", cat:"param", note:"Accepts a comma-separated list of targets, not just one."},
+{text:"WEB01,WEB02,WEB03,WEB04,WEB05", cat:"value", note:"All five servers in one call."},
+{text:"-ScriptBlock", cat:"param", note:"The command to run on each target machine."},
+{text:"{Get-Service wuauserv}", cat:"value", note:"Checks the Windows Update service specifically."}
+],
+output: "Status   Name       PSComputerName\n------   ----       --------------\nRunning  wuauserv   WEB01\nRunning  wuauserv   WEB02\nStopped  wuauserv   WEB03\nRunning  wuauserv   WEB04\nRunning  wuauserv   WEB05",
+order: "This is the one-to-many step this whole request was really about, replacing five separate manual RDP sessions, or five repeated Enter-PSSession connections, with a single command.",
+notice: [
+{field:"PSComputerName", note:"A column Invoke-Command adds automatically, telling you which machine each result actually came from when querying several at once."},
+{field:"Stopped, WEB03", note:"The one server actually worth investigating further, found in a single pass instead of five separate manual checks."}
+],
+distractor: {
+name: "Enter-PSSession, repeated five times",
+why: "Technically gets the same information eventually, but requires manually connecting, running the command, and disconnecting, five separate times. Invoke-Command's -ComputerName list does all five in one call.",
+better: "Better fit for: genuinely needing an interactive session on one specific machine, not a repeatable check across a fleet."
+},
+concepts: [
+{term: "PSComputerName", explain: "When Invoke-Command targets multiple machines, results come back tagged with which machine each one came from, in a PSComputerName property, so you can tell the results apart."}
+]
+},
+{
+title: "Step 4 of 4 - use a different account",
+task: "Run that same five-machine check again, but using a different account than the one you're currently logged in as.",
+prefill: "",
+chips: [
+{text:"Invoke-Command", hint:"Same one-to-many cmdlet from step 3."},
+{text:"-ComputerName WEB01,WEB02,WEB03,WEB04,WEB05", hint:"Same five targets."},
+{text:"-ScriptBlock {Get-Service wuauserv}", hint:"Same command."},
+{text:"-Credential (Get-Credential)", hint:"Prompts for a username and password, and runs the remote command as that account instead of your current login."}
+],
+check: function(c){ return /invoke-command/i.test(c) && /web01/i.test(c) && /web05/i.test(c) && /-credential/i.test(c); },
+misses: [
+{test: function(c){ return /invoke-command/i.test(c) && /web01/i.test(c) && !/-credential/i.test(c); }, output: "Invoke-Command : Access is denied.", note: "Without -Credential, the command runs as whatever account you're currently logged in as. If that account doesn't have rights on the target machines, you get an access denied error instead of the results you wanted."}
+],
+hint: "Add -Credential (Get-Credential) to the same Invoke-Command from step 3, it prompts for a username and password and runs the remote command as that account.",
+tokens: [
+{text:"Invoke-Command", cat:"cmdlet", note:"Same cmdlet from step 3."},
+{text:"-ComputerName", cat:"param", note:"Same target list."},
+{text:"WEB01,WEB02,WEB03,WEB04,WEB05", cat:"value", note:"Same five servers."},
+{text:"-ScriptBlock", cat:"param", note:"Same script block."},
+{text:"{Get-Service wuauserv}", cat:"value", note:"Same command."},
+{text:"-Credential", cat:"param", note:"Runs the remote command as a specified account instead of your current login."},
+{text:"(Get-Credential)", cat:"value", note:"Prompts interactively for a username and password, the result is passed straight into -Credential."}
+],
+output: "Windows PowerShell credential request\nEnter your credentials.\nUser: CORP\\svc-webcheck\nPassword for CORP\\svc-webcheck: ****\n\nStatus   Name       PSComputerName\n------   ----       --------------\nRunning  wuauserv   WEB01\nRunning  wuauserv   WEB02\nStopped  wuauserv   WEB03\nRunning  wuauserv   WEB04\nRunning  wuauserv   WEB05",
+order: "This comes last because it builds directly on step 3's working command, adding exactly one more piece, an alternate identity, rather than changing anything else about the approach.",
+notice: [
+{field:"CORP\\svc-webcheck", note:"A separate service account being used instead of your own login, common when your personal account doesn't have rights on every target machine."}
+],
+distractor: {
+name: "Logging in as that account locally first",
+why: "Would mean actually signing out and back in as a different user just to run one remote check, disruptive and unnecessary. -Credential lets a single command run as another account without touching your actual login session.",
+better: "Better fit for: never for a task like this, -Credential exists specifically to avoid needing to switch your whole session."
+},
+concepts: [
+{term: "-Credential (Get-Credential)", explain: "Get-Credential prompts interactively for a username and password and returns a credential object. Passing that straight into a cmdlet's -Credential parameter runs the operation as that account instead of your current login."}
+]
+}
+]
+};
+PSLabInit(LESSON);
+</script>
+</body>
+</html>

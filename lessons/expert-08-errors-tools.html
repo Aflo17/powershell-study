@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Expert 8: Errors and How to Deal With Them</title>
+<link rel="stylesheet" href="../assets/styles.css">
+</head>
+<body>
+<div class="page">
+<a class="back-link" href="../index.html">&larr; Back to curriculum</a>
+<h1>Expert 8 &middot; Book 2, Ch 15: Errors and how to deal with them</h1>
+<div id="app"></div>
+</div>
+<script src="../assets/engine.js"></script>
+<script>
+var LESSON = {
+title: "Expert 8",
+request: "Inside Get-MachineInfo itself, an unreachable computer shouldn't just crash the whole loop before it's finished the rest of the list. Catch that failure, tag it clearly as belonging to that specific computer using Write-Error rather than a plain message, and then move on to the next one in line.",
+completeMessage: "You wrapped the risky query inside the function's own loop in Try/Catch, used Write-Error inside the catch block instead of a plain string so the failure is properly tagged as a real, catchable PowerShell error rather than ordinary text output, and let the loop continue to the next computer. That's error handling built into a tool itself, not just around a single command someone happens to be running interactively.",
+nextHref: "expert-09-manifest.html",
+hubHref: "../index.html",
+steps: [
+{
+title: "Step 1 of 3 - wrap the per-computer query in Try/Catch",
+task: "Inside the function's loop, wrap the per-computer query in Try/Catch so one failure doesn't stop the whole loop.",
+prefill: "",
+chips: [
+{text:"foreach ($computer in $ComputerName) {", hint:"The existing loop from earlier lessons."},
+{text:"try { $os = Get-CimInstance -ClassName Win32_OperatingSystem -ComputerName $computer -ErrorAction Stop }", hint:"-ErrorAction Stop required, same as an earlier lesson, so a failure here is genuinely catchable."},
+{text:"catch { }", hint:"Handled in the next step."},
+{text:"}", hint:"Closes the loop."}
+],
+check: function(c){ return /foreach\s*\(/i.test(c) && /try\s*\{/i.test(c) && /-erroraction\s+stop/i.test(c) && /catch/i.test(c); },
+misses: [
+{test: function(c){ return /foreach\s*\(/i.test(c) && /get-ciminstance/i.test(c) && !/try/i.test(c); }, output: "(one unreachable computer partway through the list stops the entire foreach loop cold, every remaining computer never gets checked at all)", note: "Without Try/Catch inside the loop itself, one unreachable computer partway through the list stops the entire loop, exactly the problem this request is about. Wrapping just the risky query in Try/Catch, inside the loop, is what lets it continue to the next computer."}
+],
+hint: "try { $os = Get-CimInstance ... -ErrorAction Stop } catch { }, placed inside the foreach loop from earlier lessons, wrapping just the risky query.",
+tokens: [
+{text:"foreach ($computer in $ComputerName) {", cat:"cmdlet", note:"The existing per-computer loop."},
+{text:"try { ... -ErrorAction Stop }", cat:"value", note:"-ErrorAction Stop, same requirement as an earlier lesson, makes this specific query's failure genuinely catchable."},
+{text:"catch { }", cat:"cmdlet", note:"Will hold the actual handling logic, built in the next step."},
+{text:"}", cat:"cmdlet", note:"Closes the loop."}
+],
+output: "(loop structure now in place to catch a per-computer failure without stopping the whole loop, the actual handling logic comes next)",
+order: "This runs first, establishing where inside the function the catching needs to happen, right around the one risky operation per iteration, not around the whole function.",
+notice: [
+{field:"try/catch placed inside the loop, not around it", note:"This positioning is what allows the loop to genuinely continue to the next computer after a failure, rather than the whole loop still being interrupted."}
+],
+distractor: {
+name: "Wrapping the entire function body in one big Try/Catch",
+why: "A single failure anywhere would still stop the entire loop at that point, exactly the same problem as no error handling at all. The Try/Catch needs to be inside the loop, around just the risky per-computer operation.",
+better: "Better fit for: catching a genuinely fatal, function-wide setup failure, not a per-item failure inside a loop meant to keep going."
+},
+concepts: [
+{term: "Try/Catch placement inside a loop", explain: "To let a loop continue past a single item's failure, the Try/Catch needs to wrap just that risky operation, inside the loop, not the entire loop or function. Placement determines exactly how much gets skipped when something fails."}
+]
+},
+{
+title: "Step 2 of 3 - use Write-Error, not a plain message",
+task: "Inside the catch block, flag the failure using Write-Error, tagged clearly to the specific computer, instead of a plain message.",
+prefill: "",
+chips: [
+{text:"catch { Write-Error \"Failed to query $computer\": $($_.Exception.Message)\" }", hint:"Write-Error produces a genuine, catchable PowerShell error object, unlike a plain returned string."}
+],
+check: function(c){ return /catch\s*\{/i.test(c) && /write-error/i.test(c) && /\$computer/i.test(c); },
+misses: [
+{test: function(c){ return /catch\s*\{/i.test(c) && /\"failed/i.test(c) && !/write-error/i.test(c); }, output: "(the plain string 'Failed to query SRV03' gets mixed directly into the function's normal output, indistinguishable from an actual successful result, and impossible for a caller to filter separately)", note: "A plain returned string looks like ordinary output, mixed directly into the function's normal results, with no way for a caller to distinguish it from a real, successful record, or filter it out separately. Write-Error produces a genuine, distinct error object instead, properly tagged and separately catchable by anyone calling this function."}
+],
+hint: "Write-Error \"Failed to query $computer: $($_.Exception.Message)\" inside the catch block, a real, tagged error object, not a plain string mixed into normal output.",
+tokens: [
+{text:"catch {", cat:"cmdlet", note:"Runs when the try block's query fails."},
+{text:"Write-Error", cat:"cmdlet", note:"Produces a genuine, distinct PowerShell error object, unlike a plain returned string that would blend into normal output."},
+{text:"\"Failed to query $computer: $($_.Exception.Message)\"", cat:"value", note:"A message clearly tagged to the specific computer that failed."},
+{text:"}", cat:"cmdlet", note:"Closes the catch block."}
+],
+output: "Get-MachineInfo : Failed to query SRV03: The RPC server is unavailable. (Exception from HRESULT: 0x800706BA)",
+order: "This comes right after establishing the Try/Catch structure in step 1, filling in exactly how the failure should actually be reported, as a real, distinct error, not blended into ordinary output.",
+notice: [
+{field:"A genuinely distinct error, not mixed into normal results", note:"Confirms Write-Error produced something a caller could specifically catch, filter, or redirect separately from this tool's normal, successful output."}
+],
+distractor: {
+name: "Returning a plain string describing the failure",
+why: "A plain string return value mixes directly into the function's normal output stream, indistinguishable from a real successful result, and impossible for a caller to filter out or handle separately.",
+better: "Better fit for: never as a substitute for Write-Error inside a tool meant to be reused by other scripts or callers."
+},
+concepts: [
+{term: "Write-Error inside a tool", explain: "Produces a genuine, distinct PowerShell error object, separately catchable and filterable by anyone calling your function, unlike a plain string that would blend indistinguishably into normal output."}
+]
+},
+{
+title: "Step 3 of 3 - confirm the loop actually continued",
+task: "Run the function against a mix of reachable and unreachable machines, confirming the loop genuinely continued past the failure.",
+prefill: "",
+chips: [
+{text:"Get-MachineInfo -ComputerName SRV01,SRV03,SRV02", hint:"SRV03, in the middle, is the unreachable one."}
+],
+check: function(c){ return /get-machineinfo/i.test(c) && /srv01/i.test(c) && /srv03/i.test(c) && /srv02/i.test(c); },
+misses: [],
+hint: "Get-MachineInfo -ComputerName SRV01,SRV03,SRV02, with the unreachable machine placed in the middle, confirming the loop genuinely continues to SRV02 afterward.",
+tokens: [
+{text:"Get-MachineInfo", cat:"cmdlet", note:"The finished function, now with per-computer error handling built in."},
+{text:"-ComputerName", cat:"param", note:"Same parameter."},
+{text:"SRV01,SRV03,SRV02", cat:"value", note:"SRV03, unreachable, placed deliberately in the middle, the real test of whether the loop continues past it."}
+],
+output: "ComputerName OSVersion  BuildNumber\n------------ ---------  -----------\nSRV01        10.0.20348 20348\nGet-MachineInfo : Failed to query SRV03: The RPC server is unavailable. (Exception from HRESULT: 0x800706BA)\nSRV02        10.0.19045 19045",
+order: "This is last, direct proof that everything built in steps 1 and 2 actually works together: SRV03's failure produces a clearly tagged error, and SRV02, listed after it, still gets checked and returns a real result.",
+notice: [
+{field:"SRV02's result still appears, after SRV03's error", note:"Direct proof the loop genuinely continued past the failure, exactly the behavior the original request asked for."}
+],
+distractor: {
+name: "Only testing with the unreachable machine listed last",
+why: "Wouldn't actually prove the loop continues past a failure, since there'd be nothing left to check afterward anyway. Placing it in the middle is the real test.",
+better: "Better fit for: never as the only test, a failure in the middle of the list is the genuine proof this lesson needed."
+},
+concepts: [
+{term: "Testing that a loop actually continues", explain: "Placing a deliberately failing item in the middle of a test list, rather than at the end, is what actually proves a loop continues past a failure, rather than just happening to finish because nothing came after it."}
+]
+}
+]
+};
+PSLabInit(LESSON);
+</script>
+</body>
+</html>

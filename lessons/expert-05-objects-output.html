@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Expert 5: Objects - The Best Kind of Output</title>
+<link rel="stylesheet" href="../assets/styles.css">
+</head>
+<body>
+<div class="page">
+<a class="back-link" href="../index.html">&larr; Back to curriculum</a>
+<h1>Expert 5 &middot; Book 2, Ch 12: Objects: The best kind of output</h1>
+<div id="app"></div>
+</div>
+<script src="../assets/engine.js"></script>
+<script>
+var LESSON = {
+title: "Expert 5",
+request: "Get-MachineInfo currently just dumps whatever Get-CimInstance hands back, with a dozen properties nobody asked for. I want it to output a clean custom object instead: just ComputerName, OSVersion, and BuildNumber, nothing else, and it needs to still behave like a real object, sortable, filterable, exportable, not text that happens to look right.",
+completeMessage: "You built a real [PSCustomObject] with exactly the three properties that matter, instead of dumping every raw property CIM handed back, and confirmed with Get-Member that it's still a genuine, reusable object. That's the actual craft of tool output: deciding what belongs, and proving what comes out the other end is still real data.",
+nextHref: "expert-06-streams.html",
+hubHref: "../index.html",
+steps: [
+{
+title: "Step 1 of 3 - see the problem with the raw output",
+task: "First look at what Get-CimInstance hands back raw, to see exactly why it's not fit to be the function's output as-is.",
+prefill: "",
+chips: [
+{text:"Get-CimInstance", hint:"The raw command."},
+{text:"-ClassName Win32_OperatingSystem -ComputerName SRV01 | Get-Member", hint:"Confirming exactly how many properties actually exist on the raw object."}
+],
+check: function(c){ return /get-ciminstance/i.test(c) && /get-member/i.test(c); },
+misses: [],
+hint: "Get-CimInstance -ClassName Win32_OperatingSystem -ComputerName SRV01 | Get-Member, confirming directly just how many properties the raw object actually carries.",
+tokens: [
+{text:"Get-CimInstance", cat:"cmdlet", note:"Returns the raw CIM object, dozens of properties, most of them irrelevant to this specific tool's purpose."},
+{text:"-ClassName Win32_OperatingSystem -ComputerName SRV01", cat:"param", note:"Same query from an earlier lesson."},
+{text:"Get-Member", cat:"cmdlet", note:"Confirms exactly how many properties exist on the raw object."}
+],
+output: "   TypeName: Microsoft.Management.Infrastructure.CimInstance#root/cimv2/Win32_OperatingSystem\n\n(60+ properties listed: BootDevice, BuildNumber, Caption, CodeSet, CountryCode, CreationClassName, CSName, ...)",
+order: "This runs first, confirming concretely why raw CIM output isn't a good fit as a tool's final output, dozens of properties nobody asked for, most genuinely irrelevant to this specific request.",
+notice: [
+{field:"60+ properties", note:"The scale of the actual problem: a caller wanting just three specific values has to wade through dozens of irrelevant ones in the raw object."}
+],
+distractor: {
+name: "Just outputting the raw CIM object directly",
+why: "Technically real data, but drowns the three properties anyone actually wants in dozens of irrelevant ones, awkward to work with and a poor interface for a tool meant to be reused.",
+better: "Better fit for: quick, one-off interactive exploration, not a tool meant to be a clean, reusable interface."
+},
+concepts: [
+{term: "Raw output isn't always good output", explain: "A command's raw return value can be real, genuine data and still be a poor choice for a tool's actual output, if it's cluttered with far more than a caller actually needs. Deciding what belongs in the final shape is part of good tool design."}
+]
+},
+{
+title: "Step 2 of 3 - build a clean custom object",
+task: "Now build a clean custom object with just ComputerName, OSVersion, and BuildNumber.",
+prefill: "",
+chips: [
+{text:"[PSCustomObject]@{", hint:"Builds a real, genuine custom object with exactly the properties you choose, no more, no less."},
+{text:"ComputerName = $computer", hint:"First property."},
+{text:"OSVersion = $os.Version", hint:"Second property, pulled from the raw CIM object."},
+{text:"BuildNumber = $os.BuildNumber", hint:"Third property, same source."},
+{text:"}", hint:"Closes the custom object."}
+],
+check: function(c){ return /\[pscustomobject\]/i.test(c) && /computername/i.test(c) && /osversion/i.test(c) && /buildnumber/i.test(c); },
+misses: [
+{test: function(c){ return /select-object/i.test(c) && /version/i.test(c) && !/pscustomobject/i.test(c); }, output: "(Select-Object works here too, but only ever narrows down properties that already exist on the source object, it can't rename them or combine values from more than one source cleanly)", note: "Select-Object can narrow down existing properties, but [PSCustomObject] gives full control: renaming OSVersion from whatever the raw property was actually called, and structuring the exact three-property shape the request specifically asked for, cleanly."}
+],
+hint: "[PSCustomObject]@{ ComputerName = $computer; OSVersion = $os.Version; BuildNumber = $os.BuildNumber }, exactly the three properties requested, cleanly named.",
+tokens: [
+{text:"[PSCustomObject]@{", cat:"value", note:"Builds a genuine, real custom object with exactly the shape you define."},
+{text:"ComputerName = $computer", cat:"value", note:"First of exactly three properties."},
+{text:"OSVersion = $os.Version", cat:"value", note:"Second property, its name chosen deliberately, not just inherited from the raw CIM property name."},
+{text:"BuildNumber = $os.BuildNumber", cat:"value", note:"Third and final property."},
+{text:"}", cat:"value", note:"Closes the object definition."}
+],
+output: "ComputerName OSVersion  BuildNumber\n------------ ---------  -----------\nSRV01        10.0.20348 20348",
+order: "This comes right after seeing the raw output's problem, building the deliberately narrow, clean shape the request actually asked for, instead of the sprawling raw CIM object from step 1.",
+notice: [
+{field:"Exactly three properties", note:"Precisely what the request asked for, nothing more, a direct contrast with step 1's 60+ raw properties."}
+],
+distractor: {
+name: "Select-Object on the raw CIM object",
+why: "Narrows down to existing properties fine, but can't cleanly rename them or combine values, and here the request specifically wanted a purpose-built shape, exactly what [PSCustomObject] is for.",
+better: "Better fit for: when the raw object's existing property names are already exactly what you want, just fewer of them."
+},
+concepts: [
+{term: "[PSCustomObject]", explain: "Builds a genuine, real custom object with exactly the properties and names you define, giving full control over a tool's output shape, rather than being constrained to whatever a source command's raw properties happened to be called."}
+]
+},
+{
+title: "Step 3 of 3 - confirm it's still a real, usable object",
+task: "Confirm the custom object is still genuinely real and reusable, not just text that happens to look right.",
+prefill: "",
+chips: [
+{text:"[PSCustomObject]@{ ComputerName = $computer; OSVersion = $os.Version; BuildNumber = $os.BuildNumber }", hint:"The object from step 2."},
+{text:"Get-Member", hint:"The same discovery habit from way back in chapter 8, confirming this is genuinely real."}
+],
+check: function(c){ return /\[pscustomobject\]/i.test(c) && /get-member/i.test(c); },
+misses: [],
+hint: "Pipe the custom object from step 2 into Get-Member, the same habit from chapter 8, confirming it's genuinely a real, usable object, not display-only text.",
+tokens: [
+{text:"[PSCustomObject]@{ ... }", cat:"value", note:"The clean custom object from step 2."},
+{text:"Get-Member", cat:"cmdlet", note:"Confirms the object's real type and properties, exactly the habit from chapter 8, now applied to a custom object you built yourself."}
+],
+output: "   TypeName: System.Management.Automation.PSCustomObject\n\nName          MemberType   Definition\n----          ----------   ----------\nComputerName  NoteProperty string ComputerName=SRV01\nOSVersion     NoteProperty string OSVersion=10.0.20348\nBuildNumber   NoteProperty string BuildNumber=20348",
+order: "This is last, closing the loop back to chapter 8's core habit, confirming this hand-built object is genuinely real and reusable, not just clean-looking text, before trusting it as the function's actual output.",
+notice: [
+{field:"TypeName: PSCustomObject, three real NoteProperty entries", note:"Confirms directly: this is a genuine, sortable, filterable, exportable object, exactly what the original request needed, not display-only text."}
+],
+distractor: {
+name: "Trusting it's a real object just because it displays cleanly",
+why: "Clean-looking display output and a genuinely real object can look identical printed to a screen, exactly the trap chapter 8 warned about. Get-Member is the concrete way to tell them apart with certainty.",
+better: "Better fit for: never skipping, this final confirmation costs nothing and removes any doubt."
+},
+concepts: [
+{term: "PSCustomObject is still real", explain: "A [PSCustomObject] you build yourself is exactly as real and reusable as one returned by a built-in cmdlet, sortable, filterable, exportable, confirmed here with the exact same Get-Member habit that verified built-in objects back in chapter 8."}
+]
+}
+]
+};
+PSLabInit(LESSON);
+</script>
+</body>
+</html>

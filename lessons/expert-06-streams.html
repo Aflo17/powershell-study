@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Expert 6: Using All the Streams</title>
+<link rel="stylesheet" href="../assets/styles.css">
+</head>
+<body>
+<div class="page">
+<a class="back-link" href="../index.html">&larr; Back to curriculum</a>
+<h1>Expert 6 &middot; Book 2, Ch 13: Using all the streams</h1>
+<div id="app"></div>
+</div>
+<script src="../assets/engine.js"></script>
+<script>
+var LESSON = {
+title: "Expert 6",
+request: "Get-MachineInfo needs three different kinds of messages now, and they shouldn't all look the same: a real problem when a machine can't be reached, something the caller specifically has to opt into seeing for step-by-step detail, and a general FYI-type note that's informative but not urgent. Use the actual right stream for each, not just Write-Host for everything.",
+completeMessage: "You used Write-Warning for a genuine problem, so it stands out and can be suppressed or captured separately, Write-Verbose for detail that stays invisible unless someone opts in, and Write-Information for a note that's informative without demanding attention. Three different streams for three genuinely different purposes, not Write-Host doing all of it.",
+nextHref: "expert-07-comment-help.html",
+hubHref: "../index.html",
+steps: [
+{
+title: "Step 1 of 3 - a real problem: Write-Warning",
+task: "When a machine can't be reached, produce a message that stands out as an actual problem.",
+prefill: "",
+chips: [
+{text:"Write-Warning", hint:"Produces a distinct yellow warning message, visible by default, but separately suppressible with -WarningAction and capturable with -WarningVariable."},
+{text:"\"$computer could not be reached\"", hint:"The actual problem message."}
+],
+check: function(c){ return /write-warning/i.test(c) && /could not be reached/i.test(c); },
+misses: [
+{test: function(c){ return /write-host/i.test(c) && /could not be reached/i.test(c) && !/write-warning/i.test(c); }, output: "SRV03 could not be reached\n(prints in plain default text, indistinguishable from any other Write-Host message, and impossible to suppress or capture separately from normal output)", note: "Write-Host prints everything the same plain way, with no way to distinguish a genuine problem from routine status text, and no way to suppress or capture it separately. Write-Warning is specifically for this: a distinct, separately controllable stream for real problems."}
+],
+hint: "Write-Warning \"$computer could not be reached\", a distinct stream for genuine problems, separately controllable from routine output.",
+tokens: [
+{text:"Write-Warning", cat:"cmdlet", note:"Produces a distinct warning message, visible by default in yellow, controllable separately with -WarningAction and capturable with -WarningVariable."},
+{text:"\"$computer could not be reached\"", cat:"value", note:"The actual problem being flagged."}
+],
+output: "WARNING: SRV03 could not be reached",
+order: "This runs first, the most urgent of the three message types, a genuine problem deserving its own distinct, separately controllable stream.",
+notice: [
+{field:"WARNING: prefix, distinct from normal output", note:"Confirms this used a genuinely separate stream, not the same plain output every other message type would use."}
+],
+distractor: {
+name: "Write-Host for the unreachable message",
+why: "Prints identically to every other Write-Host message, with no way to distinguish a genuine problem from routine status text, and no way to suppress or capture it separately from the rest of a script's output.",
+better: "Better fit for: a message meant purely for a human watching the screen, with no meaningful distinction from other output, genuinely rare in a well-designed tool."
+},
+concepts: [
+{term: "Write-Warning", explain: "A distinct output stream for genuine problems, visible by default (usually in yellow), but separately controllable with -WarningAction and capturable with -WarningVariable, unlike plain Write-Host text."}
+]
+},
+{
+title: "Step 2 of 3 - opt-in detail: Write-Verbose",
+task: "Now add step-by-step detail that stays invisible unless someone specifically opts into seeing it.",
+prefill: "",
+chips: [
+{text:"Write-Verbose", hint:"From an earlier lesson, silent by default, visible only with -Verbose."},
+{text:"\"Connecting to $computer...\"", hint:"Step-by-step detail, the kind nobody wants to see by default."}
+],
+check: function(c){ return /write-verbose/i.test(c) && /connecting/i.test(c); },
+misses: [],
+hint: "Write-Verbose \"Connecting to $computer...\", silent by default, only visible with -Verbose, exactly the opt-in detail requested.",
+tokens: [
+{text:"Write-Verbose", cat:"cmdlet", note:"From an earlier lesson, produces output only visible when -Verbose is explicitly used."},
+{text:"\"Connecting to $computer...\"", cat:"value", note:"Step-by-step detail, invisible unless specifically requested."}
+],
+output: "(nothing by default; with -Verbose added: VERBOSE: Connecting to SRV01...)",
+order: "This is the second of three genuinely different message types, opt-in detail, distinct from both the urgent warning in step 1 and the general FYI note coming in step 3.",
+notice: [
+{field:"Completely silent unless -Verbose is added", note:"Exactly the opt-in behavior requested, distinct from Write-Warning's always-visible-by-default behavior in step 1."}
+],
+distractor: {
+name: "Write-Warning for step-by-step detail",
+why: "Write-Warning is always visible by default, exactly the opposite of what routine step-by-step detail should be. Overusing it for non-problems trains callers to start ignoring real warnings.",
+better: "Better fit for: genuine problems specifically, not routine detail, exactly what step 1 used it for correctly."
+},
+concepts: [
+{term: "Matching stream to message severity", explain: "Write-Warning, Write-Verbose, and Write-Information each carry a different implicit severity and default visibility. Using the wrong one, like Write-Warning for routine detail, trains callers to tune out real warnings when they matter most."}
+]
+},
+{
+title: "Step 3 of 3 - an informative note: Write-Information",
+task: "Now add a general, informative note, not urgent, but more visible than opt-in verbose detail.",
+prefill: "",
+chips: [
+{text:"Write-Information", hint:"A stream for informative messages, more visible than Write-Verbose by default in some configurations, but distinctly separate from a warning."},
+{text:"\"Checked 5 machines, 1 unreachable.\"", hint:"A general summary note, informative without being urgent."},
+{text:"-InformationAction Continue", hint:"Ensures the message actually displays, since Write-Information is silent by default in many sessions unless this is set."}
+],
+check: function(c){ return /write-information/i.test(c) && /checked 5 machines/i.test(c); },
+misses: [
+{test: function(c){ return /write-warning/i.test(c) && /checked 5 machines/i.test(c); }, output: "WARNING: Checked 5 machines, 1 unreachable.\n(this isn't actually a problem, just a summary note, but Write-Warning makes it look like one)", note: "This isn't actually a problem, it's a routine summary. Using Write-Warning here makes a non-issue look urgent, exactly the kind of overuse that trains people to start ignoring real warnings, like the one correctly used in step 1."}
+],
+hint: "Write-Information \"Checked 5 machines, 1 unreachable.\" -InformationAction Continue, a general note, distinct from both the urgent warning in step 1 and the silent-by-default detail in step 2.",
+tokens: [
+{text:"Write-Information", cat:"cmdlet", note:"A stream specifically for informative messages, distinct from both warnings and verbose detail."},
+{text:"\"Checked 5 machines, 1 unreachable.\"", cat:"value", note:"A general, non-urgent summary note."},
+{text:"-InformationAction", cat:"param", note:"Controls whether Write-Information output actually displays, since it can be silent by default in some configurations."},
+{text:"Continue", cat:"value", note:"Ensures this particular message actually shows."}
+],
+output: "INFO: Checked 5 machines, 1 unreachable.",
+order: "This is last, the third genuinely distinct message type, general and informative, but neither an urgent problem like step 1's warning, nor opt-in-only detail like step 2's verbose output.",
+notice: [
+{field:"Three genuinely different streams used for three genuinely different purposes", note:"Write-Warning for a real problem, Write-Verbose for opt-in detail, Write-Information for a general note, exactly matching each message's actual nature instead of Write-Host for all three."}
+],
+distractor: {
+name: "Write-Host for the summary note",
+why: "Works, but flattens every message type into the same plain, always-visible text, with no way for a caller to filter, suppress, or capture different kinds of output separately, exactly what this whole lesson was about avoiding.",
+better: "Better fit for: a message that genuinely needs to be identical to every other message type, no meaningful distinction, rare in a well-designed tool."
+},
+concepts: [
+{term: "PowerShell's output streams", explain: "PowerShell has several distinct output streams (Success, Error, Warning, Verbose, Debug, Information, and more), each with its own default visibility and its own controlling parameters. Matching a message to the right stream, instead of routing everything through Write-Host, is what makes a tool's output genuinely usable and filterable."}
+]
+}
+]
+};
+PSLabInit(LESSON);
+</script>
+</body>
+</html>

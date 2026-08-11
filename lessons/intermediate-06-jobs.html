@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Intermediate 6: Multitasking with Background Jobs</title>
+<link rel="stylesheet" href="../assets/styles.css">
+</head>
+<body>
+<div class="page">
+<a class="back-link" href="../index.html">&larr; Back to curriculum</a>
+<h1>Intermediate 6 &middot; Ch 14: Multitasking with background jobs</h1>
+<div id="app"></div>
+</div>
+<script src="../assets/engine.js"></script>
+<script>
+var LESSON = {
+title: "Intermediate 6",
+request: "I need to pull the event log from WEB03, it's a slow query and I don't want my console frozen the whole time waiting on it. Run it in the background so I can keep working, then show me how you'd check whether it's actually finished, then get me the results once it is, and clean up after yourself when you're done.",
+completeMessage: "You started the slow query as a background job instead of letting it freeze your console, checked its state before assuming it was done, pulled the results with Receive-Job once it actually finished, and cleaned up with Remove-Job afterward. That start, check, receive, clean up sequence is the whole rhythm of background jobs.",
+nextHref: "intermediate-07-many-objects.html",
+hubHref: "../index.html",
+steps: [
+{
+title: "Step 1 of 4 - start it in the background",
+task: "Start the slow event log query as a background job instead of running it directly and freezing the console.",
+prefill: "",
+chips: [
+{text:"Start-Job", hint:"Runs a script block as a background job, your console stays free immediately."},
+{text:"-ScriptBlock {Get-WinEvent -ComputerName WEB03 -LogName System}", hint:"The slow command, wrapped in a script block to hand off to the background."},
+{text:"Get-WinEvent -ComputerName WEB03 -LogName System", hint:"Running it directly, no job wrapper. Exactly the frozen-console problem being avoided."}
+],
+check: function(c){ return /start-job/i.test(c) && /scriptblock/i.test(c) && /get-winevent/i.test(c); },
+misses: [
+{test: function(c){ return /get-winevent/i.test(c) && /web03/i.test(c) && !/start-job/i.test(c); }, output: "(console frozen, waiting on WEB03's event log query to complete before anything else can run)", note: "That's running the slow query directly. Your console is now blocked until it finishes, exactly the problem you were trying to avoid. Start-Job hands the same command off to run in the background instead."}
+],
+hint: "Start-Job with -ScriptBlock wrapping the slow Get-WinEvent command, your console stays usable immediately while it runs.",
+tokens: [
+{text:"Start-Job", cat:"cmdlet", note:"Hands a command off to run in the background, returns control of the console immediately."},
+{text:"-ScriptBlock", cat:"param", note:"The command to run in the background, wrapped in {}."},
+{text:"{Get-WinEvent -ComputerName WEB03 -LogName System}", cat:"value", note:"The actual slow query being backgrounded."}
+],
+output: "Id     Name            PSJobTypeName   State         HasMoreData     Command\n--     ----            -------------   -----         -----------     -------\n1      Job1            BackgroundJob   Running       True            Get-WinEvent -ComputerN...",
+order: "This is first because it's the whole point of the request: hand the slow work off immediately instead of sitting there waiting on it.",
+notice: [
+{field:"State: Running", note:"The job started immediately and your console prompt returned right away, it's working in the background, not blocking anything."},
+{field:"Id: 1", note:"Every job gets an Id, used in the next steps to check on or retrieve results from this specific job."}
+],
+distractor: {
+name: "Running Get-WinEvent directly",
+why: "This blocks the console until the slow query finishes, exactly the problem the request was trying to avoid. Start-Job hands the same work off to run separately, returning control immediately.",
+better: "Better fit for: quick commands where you're fine waiting a second or two for the result."
+},
+concepts: [
+{term: "Start-Job", explain: "Runs a script block as a separate background job instead of directly in your console. Control returns to you immediately, the job keeps running independently, checked on later with Get-Job."}
+]
+},
+{
+title: "Step 2 of 4 - check whether it's done",
+task: "Check on the job to see whether it's actually finished yet, don't just assume.",
+prefill: "",
+chips: [
+{text:"Get-Job", hint:"Lists background jobs and their current state, without retrieving any results."},
+{text:"Receive-Job", hint:"Pulls the actual output from a job. Not the right tool yet if you only want to check status."}
+],
+check: function(c){ return /get-job/i.test(c); },
+misses: [
+{test: function(c){ return /receive-job/i.test(c) && !/get-job/i.test(c); }, output: "(if the job hasn't finished yet, this returns nothing or only partial results, without telling you clearly whether it's actually done)", note: "Receive-Job pulls output, it doesn't clearly tell you the job's current state the way Get-Job does. Checking status first avoids assuming a job is done, or retrieving incomplete results too early."}
+],
+hint: "Get-Job checks the state of background jobs without pulling their results yet.",
+tokens: [
+{text:"Get-Job", cat:"cmdlet", note:"Lists all background jobs and their current State, Running, Completed, Failed, and so on."}
+],
+output: "Id     Name            PSJobTypeName   State         HasMoreData     Command\n--     ----            -------------   -----         -----------     -------\n1      Job1            BackgroundJob   Completed     True            Get-WinEvent -ComputerN...",
+order: "This comes after starting the job and before retrieving results, checking status is the habit that prevents assuming a job finished when it might still be running.",
+notice: [
+{field:"State: Completed", note:"Confirms the job actually finished, safe to move on to retrieving its results next."},
+{field:"HasMoreData: True", note:"Signals there's output waiting to be picked up with Receive-Job, it hasn't been retrieved yet."}
+],
+distractor: {
+name: "Receive-Job to check status",
+why: "Receive-Job's job is pulling output, not clearly reporting job state. Checking with Get-Job first confirms the job actually finished before you try to collect results from it.",
+better: "Better fit for: after you've already confirmed the job is Completed, exactly what step 3 does next."
+},
+concepts: [
+{term: "Job states", explain: "A background job's State property moves through values like NotStarted, Running, Completed, or Failed. Get-Job is how you check which state a job is currently in."}
+]
+},
+{
+title: "Step 3 of 4 - get the results",
+task: "Now that it's confirmed done, actually pull the results from the job.",
+prefill: "",
+chips: [
+{text:"Receive-Job", hint:"Retrieves the actual output a completed job produced."},
+{text:"-Id 1", hint:"Which job to pull results from, matching the Id seen in Get-Job's output."},
+{text:"Get-Job", hint:"Checks status again. Already confirmed Completed in step 2, not needed a second time here."}
+],
+check: function(c){ return /receive-job/i.test(c) && /1/.test(c); },
+misses: [
+{test: function(c){ return /get-job/i.test(c) && !/receive-job/i.test(c); }, output: "Id     Name            PSJobTypeName   State         HasMoreData     Command\n--     ----            -------------   -----         -----------     -------\n1      Job1            BackgroundJob   Completed     True            Get-WinEvent -ComputerN...", note: "That's the same status check from step 2, run again. It confirms the job is done, again, but it doesn't actually hand you the event log data itself. Receive-Job is what pulls the real output out of a completed job."}
+],
+hint: "Receive-Job -Id 1 pulls the actual output the job collected, now that Get-Job confirmed it's Completed.",
+tokens: [
+{text:"Receive-Job", cat:"cmdlet", note:"Retrieves the output a background job produced while running."},
+{text:"-Id", cat:"param", note:"Which job's results to retrieve."},
+{text:"1", cat:"value", note:"The Id seen in the earlier Get-Job output."}
+],
+output: "ProviderName: EventLog\n\nTimeCreated             Id      LevelDisplayName Message\n----------              --      ---------------- -------\n8/10/2026 3:14:02 AM    7036    Information       The service entered the running state.\n8/10/2026 2:58:41 AM    1074    Information       The process explorer.exe initiated a restart.",
+order: "This comes right after confirming Completed status in step 2, retrieving results only once you know they're actually ready, not before.",
+notice: [
+{field:"Actual event log entries", note:"This is the real payload the background job was collecting the whole time, only now handed back to your console."}
+],
+distractor: {
+name: "Get-Job again instead of Receive-Job",
+why: "Get-Job only ever reports status, State, HasMoreData, and so on. It was already confirmed Completed in step 2. Actually collecting the event log data itself requires Receive-Job.",
+better: "Better fit for: checking on a job's progress, not collecting its finished output."
+},
+concepts: [
+{term: "Receive-Job", explain: "Pulls the actual output a background job produced. Separate from Get-Job, which only reports status. A job can be Completed for a while before you ever call Receive-Job to actually collect its results."}
+]
+},
+{
+title: "Step 4 of 4 - clean up",
+task: "Now clean up after yourself, remove the job now that you have its results.",
+prefill: "",
+chips: [
+{text:"Remove-Job", hint:"Deletes a job from the job list once you're done with it, freeing up the resources it was holding."},
+{text:"-Id 1", hint:"The same job Id used throughout."}
+],
+check: function(c){ return /remove-job/i.test(c) && /1/.test(c); },
+misses: [
+{test: function(c){ return /get-job/i.test(c) && !/remove-job/i.test(c); }, output: "Id     Name            PSJobTypeName   State         HasMoreData     Command\n--     ----            -------------   -----         -----------     -------\n1      Job1            BackgroundJob   Completed     True            Get-WinEvent -ComputerN...", note: "That job is still sitting there. Checking on it again doesn't clean anything up, it just confirms what you already knew. Left alone, finished jobs pile up over a session, holding onto memory for results you've already collected. Remove-Job actually clears it out."}
+],
+hint: "Remove-Job -Id 1 clears the completed job out now that its results have been collected, so it doesn't sit around taking up resources.",
+tokens: [
+{text:"Remove-Job", cat:"cmdlet", note:"Deletes a job entry, freeing whatever resources it was holding onto."},
+{text:"-Id", cat:"param", note:"Which job to remove."},
+{text:"1", cat:"value", note:"Same job Id used throughout this lesson."}
+],
+output: "(job 1 removed, Get-Job now returns nothing)",
+order: "This is last because it's genuinely the last thing that should happen, after you've collected the results you actually needed in step 3, not before.",
+notice: [
+{field:"Get-Job now returns nothing", note:"Confirms the cleanup worked, the completed job is no longer sitting around."}
+],
+distractor: {
+name: "Leaving the job in place",
+why: "It costs nothing immediately, but finished jobs accumulate over a long session, each one holding onto memory for results already collected. Removing them once you're done is just good housekeeping.",
+better: "Better fit for: never leaving them intentionally, though it's a harmless mistake in a short session, it adds up in a long one."
+},
+concepts: [
+{term: "Remove-Job", explain: "Deletes a job from the session's job list. Worth doing once you've called Receive-Job and no longer need the job hanging around, otherwise completed jobs quietly accumulate over a long session."}
+]
+}
+]
+};
+PSLabInit(LESSON);
+</script>
+</body>
+</html>

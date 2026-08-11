@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Advanced 5: Handling Errors</title>
+<link rel="stylesheet" href="../assets/styles.css">
+</head>
+<body>
+<div class="page">
+<a class="back-link" href="../index.html">&larr; Back to curriculum</a>
+<h1>Advanced 5 &middot; Ch 24: Handling errors</h1>
+<div id="app"></div>
+</div>
+<script src="../assets/engine.js"></script>
+<script>
+var LESSON = {
+title: "Advanced 5",
+request: "This script queries a bunch of servers, and if even one of them is offline or unreachable, I don't want the whole thing to just die with a wall of red text. Catch that specific failure, log a clear message about which server failed, and keep going instead of stopping cold.",
+completeMessage: "You wrapped the risky command in Try/Catch instead of letting an unreachable server kill the whole script, used -ErrorAction Stop so PowerShell actually treated the failure as a catchable exception instead of a non-terminating warning, and logged a clear message from inside Catch. That Try, Catch, keep going pattern is the whole point of this chapter.",
+nextHref: "advanced-06-debugging.html",
+hubHref: "../index.html",
+steps: [
+{
+title: "Step 1 of 3 - see the problem without handling",
+task: "First, run the risky command against an offline server with no error handling at all, to see what happens by default.",
+prefill: "",
+chips: [
+{text:"Get-CimInstance", hint:"The command that fails when a server is unreachable."},
+{text:"-ComputerName WEB03 -ClassName Win32_OperatingSystem", hint:"Querying an offline machine."}
+],
+check: function(c){ return /get-ciminstance/i.test(c) && /web03/i.test(c); },
+misses: [],
+hint: "Just run Get-CimInstance -ComputerName WEB03 -ClassName Win32_OperatingSystem directly, with no error handling yet, to see the default, unhandled failure.",
+tokens: [
+{text:"Get-CimInstance", cat:"cmdlet", note:"The command being run against an unreachable server, with no protection yet."},
+{text:"-ComputerName", cat:"param", note:"The target."},
+{text:"WEB03", cat:"value", note:"Currently offline."},
+{text:"-ClassName", cat:"param", note:"What information to query."},
+{text:"Win32_OperatingSystem", cat:"value", note:"OS details."}
+],
+output: "Get-CimInstance : The RPC server is unavailable. (Exception from HRESULT: 0x800706BA)\nAt line:1 char:1\n+ Get-CimInstance -ComputerName WEB03 -ClassName Win32_OperatingSyst ...\n(script would stop here if this were part of a longer script with several servers left to check)",
+order: "This runs first deliberately, to see exactly the wall of red text the request wants avoided, before building the actual handling around it in the next two steps.",
+notice: [
+{field:"The RPC server is unavailable", note:"The specific error this lesson is about to catch and handle gracefully instead of letting it stop everything."}
+],
+distractor: {
+name: "Skipping straight to Try/Catch without seeing this first",
+why: "Not wrong exactly, but seeing the raw, unhandled failure first makes it obvious exactly what Try/Catch in the next steps is actually solving.",
+better: "Better fit for: once you're already familiar with what a given error looks like unhandled."
+},
+concepts: [
+{term: "Terminating vs non-terminating errors", explain: "Some errors stop a script cold by default (terminating), others just print a red message and keep going (non-terminating). Which kind you're dealing with affects whether Try/Catch can even catch it, covered in the next step."}
+]
+},
+{
+title: "Step 2 of 3 - catch it properly",
+task: "Now wrap the same command in Try/Catch so a failure gets handled instead of stopping everything.",
+prefill: "",
+chips: [
+{text:"try", hint:"Marks a block of code where a failure should be caught instead of stopping the whole script."},
+{text:"{ Get-CimInstance -ComputerName WEB03 -ClassName Win32_OperatingSystem -ErrorAction Stop }", hint:"-ErrorAction Stop is required here, it forces this specific command's failure to be treated as a catchable exception."},
+{text:"catch", hint:"Runs only if the try block failed, receives the error as $_ or $Error[0]."},
+{text:"{ \"Failed to reach WEB03: $($_.Exception.Message)\" }", hint:"A clear, specific message logged from inside catch, instead of the default wall of red text."}
+],
+check: function(c){ return /try\s*\{/i.test(c) && /catch/i.test(c) && /-erroraction\s+stop/i.test(c); },
+misses: [
+{test: function(c){ return /try\s*\{/i.test(c) && /catch/i.test(c) && !/-erroraction/i.test(c); }, output: "Get-CimInstance : The RPC server is unavailable. (Exception from HRESULT: 0x800706BA)\n(the error still prints in red, the catch block never actually ran)", note: "Try/Catch alone isn't enough. Many cmdlets, Get-CimInstance included, produce non-terminating errors by default, ones that print and continue rather than actually throwing an exception Try/Catch can catch. -ErrorAction Stop forces this specific command's errors to become catchable."}
+],
+hint: "try { Get-CimInstance -ComputerName WEB03 -ClassName Win32_OperatingSystem -ErrorAction Stop } catch { \"Failed to reach WEB03: $($_.Exception.Message)\" }. -ErrorAction Stop is the piece that's easy to forget.",
+tokens: [
+{text:"try", cat:"cmdlet", note:"Marks the block where a failure should be caught rather than stopping the script."},
+{text:"{ Get-CimInstance ... -ErrorAction Stop }", cat:"value", note:"-ErrorAction Stop forces this command's error to become a genuine, catchable exception, not just a printed warning."},
+{text:"catch", cat:"cmdlet", note:"Runs only when the try block actually throws a catchable exception."},
+{text:"{ \"Failed to reach WEB03: $($_.Exception.Message)\" }", cat:"value", note:"$_ inside catch refers to the error itself; .Exception.Message pulls out just its readable text."}
+],
+output: "Failed to reach WEB03: The RPC server is unavailable. (Exception from HRESULT: 0x800706BA)",
+order: "This comes right after seeing the raw failure in step 1, wrapping the exact same command in Try/Catch, plus the one crucial addition, -ErrorAction Stop, that actually makes it catchable.",
+notice: [
+{field:"A clear, single-line message, not a wall of red text", note:"This is the actual outcome the request asked for, the failure handled and logged clearly instead of stopping everything."},
+{field:"-ErrorAction Stop, easy to forget", note:"Without this, Try/Catch silently does nothing for a non-terminating error, one of the most common early mistakes with this pattern."}
+],
+distractor: {
+name: "Try/Catch without -ErrorAction Stop",
+why: "Many cmdlets produce non-terminating errors by default, ones Try/Catch can't intercept. Without -ErrorAction Stop forcing the error to become a real exception, the catch block never runs, and the original red error text still prints exactly like step 1.",
+better: "Better fit for: never on its own, -ErrorAction Stop and Try/Catch are a package deal for any cmdlet that doesn't already throw terminating errors natively."
+},
+concepts: [
+{term: "-ErrorAction Stop", explain: "Forces a specific command's errors to be treated as terminating exceptions, catchable by Try/Catch, even if that cmdlet's default behavior is a non-terminating warning that would otherwise slip right past a catch block."}
+]
+},
+{
+title: "Step 3 of 3 - confirm the script kept going",
+task: "Prove the script actually continued past the failure instead of stopping, by running one more command right after the catch block.",
+prefill: "",
+chips: [
+{text:"Write-Output \"Continuing to next server...\"", hint:"A line placed right after the try/catch block, proving execution actually reached this point."}
+],
+check: function(c){ return /try\s*\{/i.test(c) && /catch/i.test(c) && /-erroraction\s+stop/i.test(c) && /continuing/i.test(c); },
+misses: [],
+hint: "Add Write-Output \"Continuing to next server...\" right after the full try/catch block from step 2, confirming execution didn't stop at the failure.",
+tokens: [
+{text:"try { ... -ErrorAction Stop } catch { ... }", cat:"value", note:"The full block from step 2, unchanged."},
+{text:"Write-Output", cat:"cmdlet", note:"A simple line placed right after, proving the script kept running past the handled failure."},
+{text:"\"Continuing to next server...\"", cat:"value", note:"If this prints at all, the catch block successfully prevented the script from stopping."}
+],
+output: "Failed to reach WEB03: The RPC server is unavailable. (Exception from HRESULT: 0x800706BA)\nContinuing to next server...",
+order: "This is last, direct proof that the entire point of this lesson actually worked: the failure was caught, logged clearly, and the script kept going, exactly what the original request asked for.",
+notice: [
+{field:"\"Continuing to next server...\" actually printed", note:"Without Try/Catch, step 1 showed this exact failure would have stopped the script cold, this line would never have printed at all."}
+],
+distractor: {
+name: "Assuming it continued without checking",
+why: "Step 1 already proved the unhandled version stops cold. Confirming a line after the catch block actually executes is the concrete proof that this version genuinely behaves differently.",
+better: "Better fit for: never skipping this kind of check when the whole point was proving the script's behavior actually changed."
+},
+concepts: [
+{term: "Catch, then continue", explain: "A properly caught exception doesn't just log a nicer message, it lets script execution continue past the point of failure, exactly the behavior this final step confirms directly."}
+]
+}
+]
+};
+PSLabInit(LESSON);
+</script>
+</body>
+</html>

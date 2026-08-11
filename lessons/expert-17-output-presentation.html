@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Expert 17: Enhancing Script Output Presentation</title>
+<link rel="stylesheet" href="../assets/styles.css">
+</head>
+<body>
+<div class="page">
+<a class="back-link" href="../index.html">&larr; Back to curriculum</a>
+<h1>Expert 17 &middot; Book 2, Ch 24: Enhancing script output presentation</h1>
+<div id="app"></div>
+</div>
+<script src="../assets/engine.js"></script>
+<script>
+var LESSON = {
+title: "Expert 17",
+request: "Every time someone runs Get-MachineInfo, they have to manually pipe it into Format-Table just to get a readable default view, that shouldn't be necessary for a real, finished tool. Give the object a real default display, a proper type name and a default view, the way built-in cmdlets have, so it just looks right the moment it prints, no formatting required from the caller.",
+completeMessage: "You gave the custom object a real, distinct type name instead of the generic PSCustomObject label, then defined a default view for that type using Update-TypeData, so it now displays cleanly the instant it's returned, with zero formatting required from whoever's calling it. That's the same polish built-in cmdlets have, and now this one does too.",
+nextHref: "expert-18-dotnet.html",
+hubHref: "../index.html",
+steps: [
+{
+title: "Step 1 of 3 - give the object a real, distinct type name",
+task: "First, give the returned object a real, distinct type name instead of the generic PSCustomObject label.",
+prefill: "",
+chips: [
+{text:"$obj = [PSCustomObject]@{ ComputerName = $computer; OSVersion = $os.Version; BuildNumber = $os.BuildNumber }", hint:"The object from an earlier lesson."},
+{text:"$obj.PSObject.TypeNames.Insert(0, 'ScriptingMOL.MachineInfo')", hint:"Inserts a custom, distinct type name at the front of the object's type list, without changing any of its actual properties."}
+],
+check: function(c){ return /pstypenames|typenames/i.test(c) && /scriptingmol\.machineinfo/i.test(c); },
+misses: [
+{test: function(c){ return /add-member/i.test(c) && /typename/i.test(c) === false && /scriptingmol/i.test(c); }, output: "(adds a new property instead of actually changing the object's recognized type name, Update-TypeData in the next step still wouldn't have a real type name to attach a default view to)", note: "Adding a property named something like 'TypeName' doesn't actually change what PowerShell considers this object's real type, it's just another ordinary property. Inserting into $obj.PSObject.TypeNames is what genuinely gives the object a distinct, recognized type name, the actual prerequisite for defining a custom default view."}
+],
+hint: "$obj.PSObject.TypeNames.Insert(0, 'ScriptingMOL.MachineInfo') gives the object a genuine, distinct type name, the required first step before a custom default view can be attached to it.",
+tokens: [
+{text:"$obj", cat:"value", note:"The custom object from an earlier lesson."},
+{text:".PSObject.TypeNames.Insert(0, ...)", cat:"param", note:"Inserts a custom type name at the front of the object's recognized type list."},
+{text:"'ScriptingMOL.MachineInfo'", cat:"value", note:"A distinct, meaningful type name, not the generic PSCustomObject label everything gets by default."}
+],
+output: "(Get-Member on $obj now shows TypeName: ScriptingMOL.MachineInfo, instead of the generic System.Management.Automation.PSCustomObject label)",
+order: "This runs first, since a custom default view, built in the next steps, has to be attached to a specific, recognized type name, one that doesn't exist yet until this step creates it.",
+notice: [
+{field:"TypeName: ScriptingMOL.MachineInfo", note:"Confirms the object now carries a genuine, distinct type identity, the actual prerequisite for the custom formatting built in the remaining steps."}
+],
+distractor: {
+name: "Adding a regular property that just says what type it is",
+why: "A property holding descriptive text isn't the same as the object's actual, recognized type name. PowerShell's formatting system looks at .PSObject.TypeNames specifically, not an arbitrary property, when deciding how to display something.",
+better: "Better fit for: never as a substitute, .PSObject.TypeNames.Insert() is the genuine mechanism for this."
+},
+concepts: [
+{term: ".PSObject.TypeNames", explain: "The actual list PowerShell's formatting system consults to decide how an object should display. Inserting a custom name here gives an object a genuine, distinct type identity, the prerequisite for attaching a custom default view."}
+]
+},
+{
+title: "Step 2 of 3 - define a default view for that type",
+task: "Now define an actual default view for the ScriptingMOL.MachineInfo type, specifying which columns show by default.",
+prefill: "",
+chips: [
+{text:"Update-TypeData", hint:"Registers formatting rules, among other things, for a specific type name, applying automatically to every object of that type from then on."},
+{text:"-TypeName 'ScriptingMOL.MachineInfo'", hint:"The exact type name created in step 1."},
+{text:"-DefaultDisplayPropertySet 'ComputerName','OSVersion','BuildNumber'", hint:"Exactly the columns that should display by default, no Format-Table required from the caller."}
+],
+check: function(c){ return /update-typedata/i.test(c) && /scriptingmol\.machineinfo/i.test(c) && /defaultdisplaypropertyset/i.test(c); },
+misses: [
+{test: function(c){ return /format-table/i.test(c) && /computername/i.test(c) && !/update-typedata/i.test(c); }, output: "(this shows the right columns exactly once, for this specific call, but the very next time Get-MachineInfo runs, without manually piping into Format-Table again, the default view is right back to the generic, unformatted list)", note: "Piping into Format-Table manually works for exactly this one call, but doesn't change anything about the object's actual default behavior going forward. Update-TypeData registers a real, lasting default view for the entire type, so every future call displays correctly with zero formatting required."}
+],
+hint: "Update-TypeData -TypeName 'ScriptingMOL.MachineInfo' -DefaultDisplayPropertySet 'ComputerName','OSVersion','BuildNumber', registering a lasting default view for the type.",
+tokens: [
+{text:"Update-TypeData", cat:"cmdlet", note:"Registers formatting rules for a specific type name, applying automatically and permanently to every future object of that type."},
+{text:"-TypeName", cat:"param", note:"Which type this rule applies to."},
+{text:"'ScriptingMOL.MachineInfo'", cat:"value", note:"The exact type name created in step 1."},
+{text:"-DefaultDisplayPropertySet", cat:"param", note:"Which properties display by default, with no Format-Table required from the caller."},
+{text:"'ComputerName','OSVersion','BuildNumber'", cat:"value", note:"Exactly the three properties that should show automatically."}
+],
+output: "(a formatting rule now registered for ScriptingMOL.MachineInfo, applying automatically to every future object of that type, not just this one)",
+order: "This comes right after establishing the type name in step 1, registering the actual formatting rule that step 3 will confirm works automatically, with zero manual formatting from the caller.",
+notice: [
+{field:"A registered, lasting rule, not a one-time format", note:"This is what makes the fix permanent, unlike manually piping into Format-Table, which would only ever affect that one specific call."}
+],
+distractor: {
+name: "Manually piping into Format-Table for this one call",
+why: "Fixes the display for exactly this one call, but changes nothing about the object's actual default behavior. The very next time Get-MachineInfo runs without that manual formatting, it's right back to the plain, unformatted default.",
+better: "Better fit for: a genuine one-off display need, different from every future call of a finished, polished tool."
+},
+concepts: [
+{term: "Update-TypeData and DefaultDisplayPropertySet", explain: "Registers a lasting formatting rule for a specific type name, so every future object of that type displays with the specified default columns automatically, no manual Format-Table required from whoever's calling it."}
+]
+},
+{
+title: "Step 3 of 3 - confirm it displays correctly with zero manual formatting",
+task: "Now confirm the finished function displays cleanly by default, with no Format-Table piped in at all.",
+prefill: "",
+chips: [
+{text:"Get-MachineInfo -ComputerName SRV01", hint:"Called plainly, no formatting cmdlet piped in anywhere."}
+],
+check: function(c){ return /get-machineinfo/i.test(c) && !/format-table/i.test(c); },
+misses: [],
+hint: "Get-MachineInfo -ComputerName SRV01, called completely plainly, confirming steps 1 and 2 actually made the default display clean with zero manual formatting needed.",
+tokens: [
+{text:"Get-MachineInfo", cat:"cmdlet", note:"The finished function, now with a real type name and registered default view."},
+{text:"-ComputerName", cat:"param", note:"Same parameter as always."},
+{text:"SRV01", cat:"value", note:"A single target, called with nothing else piped in."}
+],
+output: "ComputerName OSVersion  BuildNumber\n------------ ---------  -----------\nSRV01        10.0.20348 20348",
+order: "This is last, the actual proof that steps 1 and 2 worked together: a clean, correctly formatted display, with absolutely nothing piped into Format-Table by the caller.",
+notice: [
+{field:"Clean table output, no Format-Table anywhere in this command", note:"This is the exact original complaint, resolved. Anyone calling Get-MachineInfo now gets a readable default display automatically, exactly like a real built-in cmdlet."}
+],
+distractor: {
+name: "Piping into Format-Table one more time just to be safe",
+why: "Would work, but defeats the entire point of steps 1 and 2, proving the object now displays correctly on its own, with zero manual formatting required from the caller.",
+better: "Better fit for: never here, this final step exists specifically to confirm formatting is no longer necessary."
+},
+concepts: [
+{term: "Confirming default formatting works", explain: "The real test of a custom default view isn't checking Update-TypeData ran without error, it's calling the actual function plainly, with nothing piped in, and confirming it displays cleanly on its own, exactly like this final step did."}
+]
+}
+]
+};
+PSLabInit(LESSON);
+</script>
+</body>
+</html>

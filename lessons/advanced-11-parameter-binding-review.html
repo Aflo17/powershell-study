@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Advanced 11: Parameter Binding Review</title>
+<link rel="stylesheet" href="../assets/styles.css">
+</head>
+<body>
+<div class="page">
+<a class="back-link" href="../index.html">&larr; Back to curriculum</a>
+<h1>Advanced 11 &middot; Book 2, Ch 4: Review: Parameter binding and the PowerShell pipeline</h1>
+<div id="app"></div>
+</div>
+<script src="../assets/engine.js"></script>
+<script>
+var LESSON = {
+title: "Advanced 11",
+request: "Get-Service | Stop-Service has worked for you before without ever typing -Name. I want to actually understand why that works under the hood before we build more tools that rely on it, prove it, don't just tell me.",
+completeMessage: "You used Trace-Command to actually watch PowerShell's parameter binder decide, in real time, how a piped object matched Stop-Service's -InputObject parameter. That's ByValue binding proven, not just asserted, exactly the difference this chapter is about, understanding the mechanic well enough to reason about pipelines you didn't write yourself.",
+nextHref: "advanced-12-scripting-crash-course.html",
+hubHref: "../index.html",
+steps: [
+{
+title: "Step 1 of 3 - watch the binder work",
+task: "Use Trace-Command to actually watch how PowerShell binds a piped Get-Service object to Stop-Service's parameters.",
+prefill: "",
+chips: [
+{text:"Trace-Command", hint:"Shows PowerShell's internal decision-making for a specific system, in real time, as a command actually runs."},
+{text:"-Name ParameterBinding", hint:"Specifically traces how parameters get matched and bound, not other internal systems."},
+{text:"-Expression { Get-Service -Name Spooler | Stop-Service -WhatIf } -PSHost", hint:"The actual command being traced, wrapped in a script block, -WhatIf keeps it safe to actually run."}
+],
+check: function(c){ return /trace-command/i.test(c) && /parameterbinding/i.test(c) && /stop-service/i.test(c); },
+misses: [
+{test: function(c){ return /get-service/i.test(c) && /stop-service/i.test(c) && !/trace-command/i.test(c); }, output: "(the pipe works, but running it alone doesn't show you why, or how PowerShell actually decided to bind the piped object)", note: "Running the pipeline alone confirms it works, but explains nothing about the mechanism behind it. Trace-Command with -Name ParameterBinding exposes PowerShell's actual internal decision-making as it happens."}
+],
+hint: "Trace-Command -Name ParameterBinding -Expression { Get-Service -Name Spooler | Stop-Service -WhatIf } -PSHost, watching the binder work in real time.",
+tokens: [
+{text:"Trace-Command", cat:"cmdlet", note:"Exposes PowerShell's internal decision-making for a specific system, as a command actually runs."},
+{text:"-Name", cat:"param", note:"Which internal system to trace."},
+{text:"ParameterBinding", cat:"value", note:"Specifically, how parameters get matched to incoming values."},
+{text:"-Expression", cat:"param", note:"The actual command to run while tracing."},
+{text:"{ Get-Service -Name Spooler | Stop-Service -WhatIf }", cat:"value", note:"The real pipeline being examined, -WhatIf keeps it safe to actually execute."},
+{text:"-PSHost", cat:"param", note:"Sends the trace output to the console instead of a file."}
+],
+output: "DEBUG: ParameterBinding Information: 0 : BIND arg [System.ServiceProcess.ServiceController] to parameter [InputObject]\nDEBUG: ParameterBinding Information: 0 :     BIND arg [Spooler] to param [InputObject] SUCCESSFUL",
+order: "This runs first, actually exposing the internal mechanism directly instead of taking it on faith, exactly the proof the request asked for.",
+notice: [
+{field:"BIND arg [...ServiceController] to parameter [InputObject]", note:"Direct proof: the piped service object matched Stop-Service's own -InputObject parameter automatically, exactly the mechanic behind Get-Service | Stop-Service."}
+],
+distractor: {
+name: "Running the pipeline alone and trusting it works",
+why: "Confirms the behavior, but explains nothing about why it works. The request specifically asked for proof of the mechanism, not just another demonstration that the pipe succeeds.",
+better: "Better fit for: everyday use, once the mechanism is already understood, tracing every pipeline you run would be excessive."
+},
+concepts: [
+{term: "Trace-Command", explain: "Exposes PowerShell's internal systems, including parameter binding, as a command actually runs. The real way to prove how something works, rather than just observing that it does."}
+]
+},
+{
+title: "Step 2 of 3 - see what -InputObject actually is",
+task: "Now confirm directly that Stop-Service has an -InputObject parameter designed to accept this kind of piped object.",
+prefill: "",
+chips: [
+{text:"Get-Command", hint:"Discovery, from chapter 3, still useful here."},
+{text:"Stop-Service", hint:"The cmdlet in question."},
+{text:"-Syntax", hint:"Shows the parameter sets directly, including -InputObject."}
+],
+check: function(c){ return /get-command/i.test(c) && /stop-service/i.test(c) && /-syntax/i.test(c); },
+misses: [
+{test: function(c){ return /get-help/i.test(c) && /stop-service/i.test(c) && !/-syntax/i.test(c) && !/get-command/i.test(c); }, output: "NAME\n    Stop-Service\nSYNOPSIS\n    Stops one or more running services.", note: "That's the general help summary, it doesn't show the parameter sets directly the way -Syntax does. Get-Command -Syntax lays out exactly which parameters exist, including -InputObject, the one that made step 1's binding possible."}
+],
+hint: "Get-Command Stop-Service -Syntax lays out its actual parameter sets, confirming -InputObject exists and accepts pipeline input.",
+tokens: [
+{text:"Get-Command", cat:"cmdlet", note:"The discovery cmdlet, from chapter 3, now used to confirm a specific parameter's existence."},
+{text:"Stop-Service", cat:"value", note:"The cmdlet being inspected."},
+{text:"-Syntax", cat:"param", note:"Shows the exact parameter sets and their types directly."}
+],
+output: "Stop-Service [-InputObject] <ServiceController[]> [-Force] [-NoWait] [-WhatIf] [-Confirm]\nStop-Service [-Name] <String[]> [-Force] [-NoWait] [-WhatIf] [-Confirm]",
+order: "This comes right after watching the trace in step 1, confirming directly in the cmdlet's own definition the specific parameter that trace output referenced.",
+notice: [
+{field:"[-InputObject] <ServiceController[]>", note:"Confirms directly: Stop-Service has a parameter specifically typed to accept ServiceController objects, exactly the type Get-Service returns, exactly what step 1's trace showed binding to."}
+],
+distractor: {
+name: "Get-Help Stop-Service, without -Syntax",
+why: "Shows a general description, not the precise parameter sets and types the way -Syntax does. Confirming -InputObject's existence and its exact type needs the syntax view specifically.",
+better: "Better fit for: understanding what a cmdlet does in general, not confirming a specific parameter's exact type."
+},
+concepts: [
+{term: "-InputObject", explain: "A common parameter pattern on cmdlets designed to accept pipeline input directly, typed to match whatever object type is expected, ServiceController for Stop-Service, Process for Stop-Process, and so on."}
+]
+},
+{
+title: "Step 3 of 3 - confirm what happens with the wrong object type",
+task: "Now confirm what happens when you pipe an object of the wrong type entirely, proving the binding is genuinely type-specific.",
+prefill: "",
+chips: [
+{text:"Get-Process -Name notepad", hint:"An entirely different object type, Process, not ServiceController."},
+{text:"| Stop-Service", hint:"Attempting to pipe the wrong type into the same cmdlet from steps 1 and 2."}
+],
+check: function(c){ return /get-process/i.test(c) && /stop-service/i.test(c); },
+misses: [],
+hint: "Get-Process -Name notepad | Stop-Service, piping a Process object where Stop-Service expects a ServiceController, to see the binding fail as proof it's genuinely type-specific.",
+tokens: [
+{text:"Get-Process", cat:"cmdlet", note:"Returns Process objects, a completely different type than ServiceController."},
+{text:"-Name", cat:"param", note:"Which process."},
+{text:"notepad", cat:"value", note:"An arbitrary running process."},
+{text:"Stop-Service", cat:"cmdlet", note:"Same cmdlet from steps 1 and 2, its -InputObject only accepts ServiceController objects."}
+],
+output: "Stop-Service : Cannot bind parameter 'InputObject'. Cannot convert the \"System.Diagnostics.Process (notepad)\" value of type \"System.Diagnostics.Process\" to type \"System.ServiceProcess.ServiceController\".",
+order: "This is last, deliberately proving the reverse of steps 1 and 2, if binding genuinely depends on matching object types, an unrelated object type should fail to bind, and it does.",
+notice: [
+{field:"Cannot convert ... Process ... to ... ServiceController", note:"Direct proof that the binding mechanism confirmed in steps 1 and 2 is genuinely type-specific, not some looser or coincidental match."}
+],
+distractor: {
+name: "Assuming any piped object would bind, without testing",
+why: "The whole value of this final step is proving the binding is type-specific, not just type-shaped-like-a-list. A deliberate mismatch is the clearest possible confirmation.",
+better: "Better fit for: never skipping this kind of check when the entire lesson was about proving a mechanism rather than asserting it."
+},
+concepts: [
+{term: "ByValue binding is type-specific", explain: "A piped object only binds automatically to a parameter like -InputObject if its actual .NET type matches what that parameter expects. A ServiceController binds to Stop-Service's -InputObject; a Process object does not, confirmed directly by the failure this step produced."}
+]
+}
+]
+};
+PSLabInit(LESSON);
+</script>
+</body>
+</html>

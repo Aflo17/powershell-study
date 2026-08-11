@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Expert 20: Never the End</title>
+<link rel="stylesheet" href="../assets/styles.css">
+</head>
+<body>
+<div class="page">
+<a class="back-link" href="../index.html">&larr; Back to curriculum</a>
+<h1>Expert 20 &middot; Book 2, Ch 27: Never the end</h1>
+<div id="app"></div>
+</div>
+<script src="../assets/engine.js"></script>
+<script>
+var LESSON = {
+title: "Expert 20",
+request: "Before we close this out, I want to see the whole Get-MachineInfo journey land in one place: a properly designed, advanced function, with real comment-based help, that handles a bad computer name gracefully instead of crashing, packaged as a real, documented module someone else could actually install and trust. Nothing new, just everything from this entire phase actually working together.",
+completeMessage: "Nothing in this final lesson introduced anything new, and that was always the point. An advanced function with CmdletBinding and real parameters, comment-based help that makes Get-Help work on it, error handling that keeps going past a bad computer name, and a real module manifest wrapping it all up, every single piece already learned somewhere across this entire curriculum. Proficiency was never about learning one more cmdlet. It was always about recognizing which already-known piece fits, and combining them. That's never the end, it's the actual beginning of building whatever comes next.",
+nextHref: "../index.html",
+hubHref: "../index.html",
+steps: [
+{
+title: "Step 1 of 3 - the advanced function, with real help",
+task: "Start with the advanced function itself, CmdletBinding, real parameters, and comment-based help, all from earlier in this phase.",
+prefill: "",
+chips: [
+{text:"<# .SYNOPSIS Gets basic OS information from one or more computers. .PARAMETER ComputerName One or more computer names to query. #>", hint:"Comment-based help, from chapter 14."},
+{text:"function Get-MachineInfo {", hint:"Verb-Noun, from way back in chapter 3's WWPD lesson."},
+{text:"[CmdletBinding()]", hint:"From chapter 11, unlocking -Verbose and the rest of the common parameters."},
+{text:"param ([Parameter(ValueFromPipeline=$True)][string[]]$ComputerName)", hint:"A real, pipeline-aware parameter, chapters 11 and 20 combined."},
+{text:"}", hint:"Closes the function."}
+],
+check: function(c){ return /<#/.test(c) && /\.synopsis/i.test(c) && /function\s+get-machineinfo/i.test(c) && /\[cmdletbinding\(\)\]/i.test(c) && /valuefrompipeline/i.test(c); },
+misses: [
+{test: function(c){ return /function\s+get-machineinfo/i.test(c) && !/<#/.test(c); }, output: "(a working function, but Get-Help Get-MachineInfo shows nothing useful, exactly the undocumented-tool problem chapter 14 was about fixing)", note: "A function without comment-based help works fine to call directly, but leaves Get-Help with nothing useful to show, exactly the gap chapter 14 addressed. Every piece here, the help block, CmdletBinding, the pipeline-aware parameter, already exists somewhere earlier in this phase."}
+],
+hint: "Comment-based help, [CmdletBinding()], and a ValueFromPipeline parameter, all individually taught earlier in this phase, now landing together in one function.",
+tokens: [
+{text:"<# .SYNOPSIS ... .PARAMETER ComputerName ... #>", cat:"value", note:"Comment-based help, from chapter 14, making Get-Help actually useful on this tool."},
+{text:"function Get-MachineInfo {", cat:"cmdlet", note:"Verb-Noun naming, from chapter 3's WWPD lesson."},
+{text:"[CmdletBinding()]", cat:"param", note:"From chapter 11, unlocking common parameters like -Verbose."},
+{text:"param ([Parameter(ValueFromPipeline=$True)][string[]]$ComputerName)", cat:"param", note:"A real, pipeline-aware parameter, chapters 11 and 20 combined."},
+{text:"}", cat:"cmdlet", note:"Closes the function."}
+],
+output: "(Get-Help Get-MachineInfo now shows a real synopsis and parameter description; Get-Content servers.txt | Get-MachineInfo now works directly, thanks to ValueFromPipeline)",
+order: "This is the foundation, and every single piece of it, naming, CmdletBinding, help, pipeline input, was already taught individually across this phase, only now combined into one real function.",
+notice: [
+{field:"Nothing new here, all previously taught pieces", note:"This entire step is a direct combination of chapters 3, 11, and 14, exactly the point of this final synthesis lesson."}
+],
+distractor: {
+name: "Skipping comment-based help since the function already works",
+why: "A function that runs correctly and a function that's genuinely usable by someone else are two different things. Working is necessary, documented and discoverable is what chapter 14 specifically added on top of that.",
+better: "Better fit for: never skipping, for any tool meant to be used by someone other than the person who wrote it."
+},
+concepts: [
+{term: "Combining, not inventing", explain: "This entire step reuses exactly three previously taught patterns: Verb-Noun naming, CmdletBinding with a pipeline-aware parameter, and comment-based help. Nothing here is new syntax, only recognizing where each piece fits."}
+]
+},
+{
+title: "Step 2 of 3 - handle a bad computer name gracefully",
+task: "Now add the error handling from earlier in this phase, so a bad or unreachable computer name doesn't crash the whole function.",
+prefill: "",
+chips: [
+{text:"foreach ($computer in $ComputerName) {", hint:"The loop."},
+{text:"try { $os = Get-CimInstance -ClassName Win32_OperatingSystem -ComputerName $computer -ErrorAction Stop }", hint:"-ErrorAction Stop, from chapter 24, making this failure genuinely catchable."},
+{text:"catch { Write-Error \"Failed to query $computer\" }", hint:"Write-Error, from chapter 15, a real, tagged error, not plain text mixed into normal output."},
+{text:"}", hint:"Closes the loop."}
+],
+check: function(c){ return /foreach\s*\(/i.test(c) && /try\s*\{/i.test(c) && /-erroraction\s+stop/i.test(c) && /catch/i.test(c) && /write-error/i.test(c); },
+misses: [
+{test: function(c){ return /foreach\s*\(/i.test(c) && /get-ciminstance/i.test(c) && !/try/i.test(c); }, output: "(one bad computer name partway through a piped-in list from Get-Content stops the entire function, exactly the fragile behavior chapters 15 and 24 addressed)", note: "Without Try/Catch, a single bad name stops the whole loop, exactly the fragility earlier lessons on error handling specifically fixed. Every piece needed to prevent this, -ErrorAction Stop, Try/Catch, Write-Error, was already taught individually earlier in this phase."}
+],
+hint: "try { ... -ErrorAction Stop } catch { Write-Error \"Failed to query $computer\" }, inside the loop, combining chapters 15 and 24's error-handling patterns.",
+tokens: [
+{text:"foreach ($computer in $ComputerName) {", cat:"cmdlet", note:"The per-computer loop, working with the pipeline-aware array from step 1."},
+{text:"try { ... -ErrorAction Stop }", cat:"value", note:"From chapter 24, makes the query's failure genuinely catchable."},
+{text:"catch { Write-Error \"Failed to query $computer\" }", cat:"value", note:"From chapter 15, a real, distinct, tagged error instead of plain output."},
+{text:"}", cat:"cmdlet", note:"Closes the loop."}
+],
+output: "(Get-Content servers.txt | Get-MachineInfo, where one line has a typo'd or offline machine, now reports that one failure clearly and keeps processing every other line)",
+order: "This comes right after the foundational function structure, adding the resilience that makes a real tool genuinely trustworthy against messy, real-world input, like a file with one bad line in it.",
+notice: [
+{field:"One failure reported, everything else still processes", note:"Direct proof this function can survive genuinely messy real-world input, exactly like a piped-in file with one typo'd or offline machine name."}
+],
+distractor: {
+name: "No error handling, since 'it usually works fine'",
+why: "A tool meant to be reused by other people, or fed real-world input like a file of server names, will eventually hit a bad value. Handling it gracefully, rather than crashing the whole run over one bad entry, is what makes a tool genuinely trustworthy.",
+better: "Better fit for: a truly disposable, one-time script you're running once yourself against input you've already manually verified."
+},
+concepts: [
+{term: "Resilience is combined, not new", explain: "Every piece needed to make this function survive a bad input gracefully, -ErrorAction Stop, Try/Catch, Write-Error, was taught individually earlier in this phase. Combining them here is what turns a fragile script into a genuinely trustworthy tool."}
+]
+},
+{
+title: "Step 3 of 3 - package it as a real, documented module",
+task: "Finally, confirm the whole thing is packaged as a real module with a manifest, installable and trustworthy, not just a function sitting in a console.",
+prefill: "",
+chips: [
+{text:"Test-ModuleManifest", hint:"From an earlier lesson, confirming the manifest is genuinely valid."},
+{text:"-Path 'ScriptingMOL\\ScriptingMOL.psd1'", hint:"The manifest wrapping this entire finished function."}
+],
+check: function(c){ return /test-modulemanifest/i.test(c) && /scriptingmol\.psd1/i.test(c); },
+misses: [
+{test: function(c){ return /get-machineinfo/i.test(c) && !/test-modulemanifest/i.test(c); }, output: "(the function works fine typed directly into a console, but that's not the same as a real, documented, installable module someone else could trust and load with Import-Module)", note: "A function that works when typed directly into a console session isn't the same as a real, packaged module. Confirming the manifest with Test-ModuleManifest is the final proof this whole journey, function, help, error handling, ends as something genuinely shareable, not just console-only code."}
+],
+hint: "Test-ModuleManifest -Path 'ScriptingMOL\\ScriptingMOL.psd1', the final confirmation that everything built across this entire phase is genuinely packaged, not just working code in a console.",
+tokens: [
+{text:"Test-ModuleManifest", cat:"cmdlet", note:"From an earlier lesson, the final validation that this is a genuine, correctly structured module."},
+{text:"-Path", cat:"param", note:"Which manifest to validate."},
+{text:"'ScriptingMOL\\ScriptingMOL.psd1'", cat:"value", note:"The manifest wrapping the entire finished function built across this whole phase."}
+],
+output: "ModuleType Version    Name           ExportedCommands\n---------- -------    ----           -----------------\nScript     1.0.0      ScriptingMOL   {Get-MachineInfo}",
+order: "This is last, closing the entire phase's journey: a well-designed advanced function, with real help and genuine error resilience, properly packaged as a module someone else could actually install and trust, every piece already learned, only now genuinely finished.",
+notice: [
+{field:"ExportedCommands: {Get-MachineInfo}", note:"The complete, finished result of this entire phase: one properly designed, documented, resilient, packaged tool, built entirely from pieces taught individually along the way."}
+],
+distractor: {
+name: "Considering the function finished once it just runs correctly",
+why: "Working correctly is necessary but not sufficient. A genuinely finished tool is documented, resilient to bad input, and packaged so someone else could actually install and trust it, exactly what this final step confirms.",
+better: "Better fit for: never as the actual finish line, though it's a meaningful milestone along the way."
+},
+concepts: [
+{term: "Never the end", explain: "This entire lesson combined pieces from chapters 3, 11, 14, 15, 16, and 24, nothing new, only recognition of which already-known piece fits where. That is the actual skill this whole curriculum was building toward, and it's exactly the skill that keeps working on the next tool, and the one after that."}
+]
+}
+]
+};
+PSLabInit(LESSON);
+</script>
+</body>
+</html>

@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Intermediate 7: Working with Many Objects, One at a Time</title>
+<link rel="stylesheet" href="../assets/styles.css">
+</head>
+<body>
+<div class="page">
+<a class="back-link" href="../index.html">&larr; Back to curriculum</a>
+<h1>Intermediate 7 &middot; Ch 15: Working with many objects, one at a time</h1>
+<div id="app"></div>
+</div>
+<script src="../assets/engine.js"></script>
+<script>
+var LESSON = {
+title: "Intermediate 7",
+request: "Find every .log file in C:\\Logs older than 30 days, and rename each one by appending .old to its filename. That's not something Rename-Item can do to a whole batch at once since every file needs a different new name, so it has to happen individually. Preview it first before actually touching anything.",
+completeMessage: "You found the matching files first, recognized that renaming each one to a different name isn't something a single cmdlet call can do in bulk, and used ForEach-Object with $_ to handle each file individually, previewing with -WhatIf before ever touching a real file. That per-object handling with $_ is exactly what this chapter is about.",
+nextHref: "intermediate-08-variables.html",
+hubHref: "../index.html",
+steps: [
+{
+title: "Step 1 of 4 - find the matching files",
+task: "First, find every .log file in C:\\Logs older than 30 days.",
+prefill: "",
+chips: [
+{text:"Get-ChildItem -Path C:\\Logs -Filter *.log", hint:"Finds the log files."},
+{text:"Where-Object", hint:"Filters down to just the ones matching the age condition."},
+{text:"{$_.LastWriteTime -lt (Get-Date).AddDays(-30)}", hint:"True for files last written more than 30 days ago."}
+],
+check: function(c){ return /get-childitem/i.test(c) && /logs/i.test(c) && /where-object/i.test(c) && /lastwritetime/i.test(c); },
+misses: [
+{test: function(c){ return /get-childitem/i.test(c) && /logs/i.test(c) && !/where-object/i.test(c); }, output: "Mode   LastWriteTime      Length Name\n----   -------------      ------ ----\n-a---  6/1/2026  9:14 AM  40213  app.log\n-a---  7/28/2026 2:03 PM  12211  error.log\n-a---  8/9/2026  6:40 AM  9512   today.log", note: "That's every .log file regardless of age, today.log included. Without a Where-Object filter on LastWriteTime, you'd end up renaming files that aren't actually old yet."}
+],
+hint: "Get-ChildItem -Path C:\\Logs -Filter *.log, piped into Where-Object {$_.LastWriteTime -lt (Get-Date).AddDays(-30)}.",
+tokens: [
+{text:"Get-ChildItem", cat:"cmdlet", note:"Lists files in the target folder."},
+{text:"-Path", cat:"param", note:"Where to look."},
+{text:"C:\\Logs", cat:"value", note:"The folder."},
+{text:"-Filter", cat:"param", note:"Narrows by filename pattern at the source, cheaper than filtering afterward."},
+{text:"*.log", cat:"value", note:"Only .log files."},
+{text:"Where-Object", cat:"cmdlet", note:"Filters further by a property, something -Filter's simple pattern matching can't do."},
+{text:"{$_.LastWriteTime -lt (Get-Date).AddDays(-30)}", cat:"param", note:"True only for files last modified more than 30 days ago."}
+],
+output: "Mode   LastWriteTime      Length Name\n----   -------------      ------ ----\n-a---  6/1/2026  9:14 AM  40213  app.log\n-a---  7/28/2026 2:03 PM  12211  error.log",
+order: "This runs first because everything after it, the renaming, only makes sense once you know exactly which files qualify.",
+notice: [
+{field:"today.log excluded", note:"Confirms the age filter worked, only files genuinely older than 30 days made it through."}
+],
+distractor: {
+name: "Get-ChildItem without the Where-Object age filter",
+why: "Returns every .log file regardless of how recent it is. Renaming files that aren't actually old yet, like today.log, wasn't part of the request.",
+better: "Better fit for: when you genuinely want every log file, not just the old ones."
+},
+concepts: [
+{term: "-Filter vs Where-Object", explain: "-Filter narrows by filename pattern right at the source, cheap and fast. Where-Object filters on any property, like a date, after the objects already exist. Use -Filter for what it can do, Where-Object for what it can't."}
+]
+},
+{
+title: "Step 2 of 4 - rename each one individually",
+task: "Now rename each matching file by appending .old to its own filename. Every file needs a different new name.",
+prefill: "",
+chips: [
+{text:"ForEach-Object", hint:"Runs a script block once per object flowing through the pipeline, using $_ to refer to whichever one is currently being processed."},
+{text:"{Rename-Item -Path $_.FullName -NewName \"$($_.Name).old\"}", hint:"Renames the current file, building its new name from its own existing name."},
+{text:"Rename-Item -NewName app.log.old", hint:"A single fixed name. Works for one file, but every file in this batch needs a different new name."}
+],
+check: function(c){ return /foreach-object/i.test(c) && /rename-item/i.test(c) && /\$_/.test(c); },
+misses: [
+{test: function(c){ return /rename-item/i.test(c) && !/foreach-object/i.test(c) && /\|/.test(c); }, output: "Rename-Item : Cannot rename because multiple items exist and only one new name was specified.", note: "Rename-Item expects one fixed new name. Piped multiple files straight into it, it has no way to know each one needs a different result. ForEach-Object with $_ is what lets each file get its own individually-computed new name."}
+],
+hint: "Pipe the filtered files into ForEach-Object {Rename-Item -Path $_.FullName -NewName \"$($_.Name).old\"}. $_ refers to whichever file is currently being processed.",
+tokens: [
+{text:"ForEach-Object", cat:"cmdlet", note:"Runs its script block once per object in the pipeline, one at a time."},
+{text:"{Rename-Item -Path $_.FullName -NewName \"$($_.Name).old\"}", cat:"param", note:"$_ is the current file; its new name is built directly from its own existing name."}
+],
+output: "(app.log renamed to app.log.old)\n(error.log renamed to error.log.old)",
+order: "This comes right after finding the matching files, and uses $_ to handle the fact that no single fixed new name could possibly work for every file in the batch.",
+notice: [
+{field:"$_.Name inside the new name", note:"Each file's new name is computed individually from its own current name, exactly why a single Rename-Item call couldn't do this alone."}
+],
+distractor: {
+name: "Rename-Item with one fixed -NewName",
+why: "Rename-Item's -NewName expects one specific new name. Piped several files at once, it has no way to give each one something different. ForEach-Object with $_ computes a distinct new name per file instead.",
+better: "Better fit for: renaming exactly one specific, known file."
+},
+concepts: [
+{term: "ForEach-Object and $_", explain: "ForEach-Object runs its script block once for every object flowing through the pipeline, with $_ standing in for whichever one is currently being processed. This is how you do something individually calculated, like a per-file new name, rather than one fixed action for the whole batch."}
+]
+},
+{
+title: "Step 3 of 4 - preview before doing it for real",
+task: "Now preview the rename operation before actually touching any files.",
+prefill: "",
+chips: [
+{text:"ForEach-Object", hint:"Same loop as step 2."},
+{text:"{Rename-Item -Path $_.FullName -NewName \"$($_.Name).old\" -WhatIf}", hint:"-WhatIf inside the script block previews what each individual rename would do."}
+],
+check: function(c){ return /foreach-object/i.test(c) && /rename-item/i.test(c) && /-whatif/i.test(c); },
+misses: [
+{test: function(c){ return /rename-item/i.test(c) && /foreach-object/i.test(c) && !/-whatif/i.test(c); }, output: "(app.log renamed to app.log.old)\n(error.log renamed to error.log.old)", note: "That's the same rename from step 2, run for real again, no preview. -WhatIf, added inside the script block on Rename-Item itself, would show what each rename would do without actually touching the files."}
+],
+hint: "Add -WhatIf directly onto the Rename-Item call inside the ForEach-Object script block, previewing every individual rename before committing.",
+tokens: [
+{text:"ForEach-Object", cat:"cmdlet", note:"Same per-object loop."},
+{text:"{Rename-Item -Path $_.FullName -NewName \"$($_.Name).old\" -WhatIf}", cat:"param", note:"-WhatIf previews what this specific rename would do, without actually doing it."}
+],
+output: "What if: Performing the operation \"Rename File\" on target \"C:\\Logs\\app.log\".\nWhat if: Performing the operation \"Rename File\" on target \"C:\\Logs\\error.log\".",
+order: "This comes right before actually committing to the rename in step 4, giving one last chance to confirm exactly which files and new names are about to be affected.",
+notice: [
+{field:"What if:", note:"Nothing actually renamed yet, this lists exactly what would happen to each file individually if you removed -WhatIf and ran it for real."}
+],
+distractor: {
+name: "Running the real rename again without -WhatIf",
+why: "That's just repeating step 2, no preview involved. -WhatIf specifically exists to show you what would happen first, especially valuable here since ForEach-Object is about to touch multiple files at once.",
+better: "Better fit for: once you've reviewed the -WhatIf output and are confident it's correct."
+},
+concepts: [
+{term: "-WhatIf inside a loop", explain: "-WhatIf works the same way inside a ForEach-Object script block as it does standalone, previewing each individual action, in this case each file's rename, before anything actually happens."}
+]
+},
+{
+title: "Step 4 of 4 - run it for real",
+task: "Reviewed and confident, now actually run the rename for real.",
+prefill: "",
+chips: [
+{text:"ForEach-Object", hint:"Same loop, -WhatIf removed now that it's been reviewed."},
+{text:"{Rename-Item -Path $_.FullName -NewName \"$($_.Name).old\"}", hint:"Same rename logic from step 2, without the preview flag."}
+],
+check: function(c){ return /foreach-object/i.test(c) && /rename-item/i.test(c) && !/-whatif/i.test(c); },
+misses: [],
+hint: "Same command as step 3, just with -WhatIf removed, now that the preview has been reviewed and confirmed correct.",
+tokens: [
+{text:"ForEach-Object", cat:"cmdlet", note:"Same per-object loop from steps 2 and 3."},
+{text:"{Rename-Item -Path $_.FullName -NewName \"$($_.Name).old\"}", cat:"param", note:"Same logic, now actually executing since -WhatIf is gone."}
+],
+output: "(app.log renamed to app.log.old)\n(error.log renamed to error.log.old)",
+order: "This is last, deliberately, only running for real after both finding the right files and previewing the exact outcome in the two steps before it.",
+notice: [
+{field:"No 'What if:' prefix", note:"Confirms this is the real operation, not another preview, the files have actually been renamed now."}
+],
+distractor: {
+name: "Skipping straight here without steps 1-3",
+why: "Works in isolation, but skips confirming which files qualify and previewing the outcome first. The whole point of this lesson is doing those checks before an operation that touches multiple files individually.",
+better: "Better fit for: a command you've already run and verified many times before, not a new batch operation."
+},
+concepts: [
+{term: "Preview, then commit", explain: "Run with -WhatIf first, review the output, then remove it and run for real. This habit matters most exactly where this lesson used it, an operation touching several objects individually with ForEach-Object."}
+]
+}
+]
+};
+PSLabInit(LESSON);
+</script>
+</body>
+</html>

@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Intermediate 1: A Practical Interlude</title>
+<link rel="stylesheet" href="../assets/styles.css">
+</head>
+<body>
+<div class="page">
+<a class="back-link" href="../index.html">&larr; Back to curriculum</a>
+<h1>Intermediate 1 &middot; Ch 9: A practical interlude</h1>
+<div id="app"></div>
+</div>
+<script src="../assets/engine.js"></script>
+<script>
+var LESSON = {
+title: "Intermediate 1",
+request: "Find the 5 largest files in C:\\Data. I'm not going to tell you which cmdlets to use, figure it out the way chapters 2 and 3 taught you: discover, don't guess.",
+completeMessage: "You didn't ask for a cmdlet name, you found it yourself, then chained discovery straight into the pipeline skills from earlier lessons: get the files, sort by size, keep the top few. That's the entire point of this chapter: proving the earlier lessons actually combine into solving something nobody handed you the answer to.",
+nextHref: "intermediate-02-pipeline-deeper.html",
+hubHref: "../index.html",
+steps: [
+{
+title: "Step 1 of 4 - find the right cmdlet yourself",
+task: "Don't ask what the cmdlet is. Use discovery to find the one that lists files in a folder.",
+prefill: "",
+chips: [
+{text:"Get-Command", hint:"The discovery cmdlet from chapter 3. Search by verb and noun instead of guessing a name."},
+{text:"-Verb Get", hint:"Narrows to read-only commands."},
+{text:"-Noun Item", hint:"Narrows to commands acting on filesystem items."},
+{text:"Get-ChildItem", hint:"The answer you're trying to discover, not something to type before you've found it."}
+],
+check: function(c){ return /get-command/i.test(c) && (/-verb/i.test(c) || /-noun/i.test(c)); },
+misses: [
+{test: function(c){ return /get-childitem/i.test(c) && !/get-command/i.test(c); }, output: "(this is the right cmdlet, but the task was to find it through discovery first, not type it from memory)", note: "That's actually the correct cmdlet, but the exercise is about the habit, not the destination. Chapters 2 and 3 exist so you never have to just remember a name, you find it with Get-Command."}
+],
+hint: "Use Get-Command with -Verb Get and -Noun Item to search for the cmdlet, the same discovery habit from chapter 3.",
+tokens: [
+{text:"Get-Command", cat:"cmdlet", note:"The discovery tool, used here to find a cmdlet name instead of assuming one."},
+{text:"-Verb", cat:"param", note:"Read-only action."},
+{text:"Get", cat:"value", note:"Confirms you want something that only reads, not changes anything."},
+{text:"-Noun", cat:"param", note:"What kind of thing it acts on."},
+{text:"Item", cat:"value", note:"A generic filesystem thing, files or folders."}
+],
+output: "CommandType     Name                                               Version    Source\n-----------     ----                                               -------    ------\nCmdlet          Get-ChildItem                                       7.0.0.0    Microsoft.PowerShell.Management",
+order: "This is the whole point of a practical interlude: applying the discovery habit from chapters 2 and 3 to a brand new problem instead of being handed the cmdlet name upfront.",
+notice: [
+{field:"Get-ChildItem", note:"The cmdlet you'll actually use for the rest of this lesson, found through search, not memorized."}
+],
+distractor: {
+name: "Just typing Get-ChildItem from memory",
+why: "It happens to be right, but skipping discovery defeats the purpose of this particular lesson, which is proving you can find an unfamiliar cmdlet on your own, not testing whether you already memorized this one.",
+better: "Better fit for: once you've used Get-ChildItem enough times that discovering it again would be pointless, this lesson is about the muscle, not this specific cmdlet."
+},
+concepts: [
+{term: "Discoverability, applied", explain: "Chapters 2 and 3 taught Get-Command and Get-Help as abstract tools. This chapter is where that habit gets tested against a real, unscripted task."}
+]
+},
+{
+title: "Step 2 of 4 - get the files",
+task: "Now get every file in C:\\Data.",
+prefill: "",
+chips: [
+{text:"Get-ChildItem", hint:"The cmdlet just discovered in step 1."},
+{text:"-Path C:\\Data", hint:"Where to look."},
+{text:"-File", hint:"Returns only files, skips subfolders, which don't have a meaningful size to compare here."}
+],
+check: function(c){ return /get-childitem/i.test(c) && /data/i.test(c) && /-file/i.test(c); },
+misses: [
+{test: function(c){ return /get-childitem/i.test(c) && /data/i.test(c) && !/-file/i.test(c); }, output: "    Directory: C:\\Data\n\nMode                 LastWriteTime         Length Name\n----                 -------------         ------ ----\nd----           1/2/2026   9:00 AM                Archive\n-a---           1/2/2026   9:14 AM        4213099 report.xlsx\nd----           1/2/2026   9:14 AM                Backups", note: "That ran, but it mixes in folders like Archive and Backups alongside actual files. Folders don't have a meaningful Length the same way, and sorting by size next would put confusing zero-length folder entries in the mix. -File filters to just files."}
+],
+hint: "Get-ChildItem -Path C:\\Data, and add -File so folders don't get mixed in with the files you're about to sort by size.",
+tokens: [
+{text:"Get-ChildItem", cat:"cmdlet", note:"Found in step 1, now put to use."},
+{text:"-Path", cat:"param", note:"Where to look."},
+{text:"C:\\Data", cat:"value", note:"The folder in question."},
+{text:"-File", cat:"param", note:"Restricts results to files only, no subfolders mixed in."}
+],
+output: "    Directory: C:\\Data\n\nMode                 LastWriteTime         Length Name\n----                 -------------         ------ ----\n-a---           1/2/2026   9:14 AM        4213099 report.xlsx\n-a---           12/28/2025  2:03 PM       88213221 backup.zip\n-a---           1/1/2026    6:40 AM         951024 notes.docx",
+order: "This is the raw data everything else in this lesson sorts and trims, following directly from finding the right cmdlet in step 1.",
+notice: [
+{field:"Length", note:"The property you'll sort on next, already visible here in bytes."}
+],
+distractor: {
+name: "Get-ChildItem without -File",
+why: "Folders get mixed in alongside files. They don't carry a comparable Length the way files do, which muddies a size-based sort right before it happens.",
+better: "Better fit for: when you actually want folders included too, like browsing a directory's full contents."
+},
+concepts: [
+{term: "-File and -Directory switches", explain: "Get-ChildItem can filter to just files or just folders right at the source, cheaper and cleaner than piping everything into Where-Object afterward to separate them."}
+]
+},
+{
+title: "Step 3 of 4 - sort by size, largest first",
+task: "Sort the files by size, largest first.",
+prefill: "",
+chips: [
+{text:"Sort-Object", hint:"Reorders by a chosen property."},
+{text:"Length", hint:"The file size property, seen in step 2's output."},
+{text:"-Descending", hint:"Largest first instead of the default smallest first."}
+],
+check: function(c){ return /get-childitem/i.test(c) && /-file/i.test(c) && /sort-object/i.test(c) && /length/i.test(c) && /-descending/i.test(c); },
+misses: [
+{test: function(c){ return /sort-object/i.test(c) && /length/i.test(c) && !/-descending/i.test(c); }, output: "Length     Name\n------     ----\n951024     notes.docx\n4213099    report.xlsx\n88213221   backup.zip", note: "That sorted, but ascending, smallest first by default. The largest file, backup.zip, ends up at the bottom instead of the top. Add -Descending."}
+],
+hint: "Sort-Object Length -Descending, same pattern as sorting by CPU in an earlier lesson, just a different property this time.",
+tokens: [
+{text:"Get-ChildItem", cat:"cmdlet", note:"Carried forward from step 2."},
+{text:"-File", cat:"param", note:"Same filter from step 2."},
+{text:"Sort-Object", cat:"cmdlet", note:"Reorders the files by size."},
+{text:"Length", cat:"value", note:"The property representing file size in bytes."},
+{text:"-Descending", cat:"param", note:"Largest value first."}
+],
+output: "Length     Name\n------     ----\n88213221   backup.zip\n4213099    report.xlsx\n951024     notes.docx",
+order: "Sorting comes before trimming to the top 5 in step 4, same rule as every earlier lesson: shape the full data first, narrow it down last.",
+notice: [
+{field:"backup.zip, 88213221", note:"Now sitting at the top, confirming -Descending actually worked."}
+],
+distractor: {
+name: "Sort-Object Length (no -Descending)",
+why: "Ascending by default puts the smallest file first and the largest dead last, backwards from what 'largest first' means.",
+better: "Better fit for: when smallest-first genuinely is what you want, cleaning up tiny leftover files, for instance."
+},
+concepts: [
+{term: "Reusing a pattern across contexts", explain: "Sort-Object -Descending here works identically to sorting processes by CPU in an earlier lesson. Once a pattern like this clicks, it applies everywhere, not just to the one example it was first taught with."}
+]
+},
+{
+title: "Step 4 of 4 - keep just the top 5",
+task: "Now trim the sorted list down to just the 5 largest.",
+prefill: "",
+chips: [
+{text:"Select-Object", hint:"Narrows down the results."},
+{text:"-First 5", hint:"Keeps only the first 5 objects in the pipeline, which after sorting descending means the 5 largest."}
+],
+check: function(c){ return /sort-object/i.test(c) && /-descending/i.test(c) && /select-object/i.test(c) && /-first/i.test(c) && /5/i.test(c); },
+misses: [],
+hint: "Pipe the sorted results into Select-Object -First 5.",
+tokens: [
+{text:"Select-Object", cat:"cmdlet", note:"Narrows down the pipeline results, this time by count rather than by property."},
+{text:"-First", cat:"param", note:"Keeps only the first however-many objects."},
+{text:"5", cat:"value", note:"The count requested."}
+],
+output: "Length     Name\n------     ----\n88213221   backup.zip\n4213099    report.xlsx\n951024     notes.docx\n847221     archive-old.zip\n612004     export.csv",
+order: "This is last because -First only makes sense once the data is already in the right order. Trim before sorting and you'd just get 5 random files, not the 5 largest.",
+notice: [
+{field:"5 rows exactly", note:"Confirms -First 5 did its job, and because the list was sorted descending first, these are genuinely the 5 largest, not just any 5."}
+],
+distractor: {
+name: "Selecting first 5 before sorting",
+why: "Get-ChildItem returns files in whatever order the filesystem happens to hand them over, not by size. Trimming to 5 before sorting would give you 5 arbitrary files, not the largest ones.",
+better: "Better fit for: never, order matters here. Sort first, always, then narrow."
+},
+concepts: [
+{term: "-First on Select-Object", explain: "Grabs a specific count of objects off the front of whatever's currently flowing through the pipeline. Combined with a prior sort, it's how you get a top-N list, top 5 largest files, top 10 busiest processes, and so on."}
+]
+}
+]
+};
+PSLabInit(LESSON);
+</script>
+</body>
+</html>

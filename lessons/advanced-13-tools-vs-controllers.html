@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Advanced 13: Tools vs Controllers</title>
+<link rel="stylesheet" href="../assets/styles.css">
+</head>
+<body>
+<div class="page">
+<a class="back-link" href="../index.html">&larr; Back to curriculum</a>
+<h1>Advanced 13 &middot; Book 2, Ch 6: The many forms of scripting (and which to choose)</h1>
+<div id="app"></div>
+</div>
+<script src="../assets/engine.js"></script>
+<script>
+var LESSON = {
+title: "Advanced 13",
+request: "I need two different things this time. First, something generic and reusable that just checks disk space on whatever computer name you give it, nothing specific to our environment baked in. Second, something that actually knows our five real web servers by name and emails the team when one's low, that one's allowed to be specific to us. Don't build them the same way.",
+completeMessage: "You built the first piece as a tool, generic, parameterized, no assumptions about which machines exist, reusable anywhere. You built the second as a controller, deliberately specific, hardcoding the five real servers and the team's actual email address, because its whole job is orchestrating this one specific situation. Recognizing which kind a script should be, before writing it, is exactly this chapter's point.",
+nextHref: "advanced-14-scripts-and-security.html",
+hubHref: "../index.html",
+steps: [
+{
+title: "Step 1 of 3 - build the generic tool",
+task: "Build the first piece as a tool: generic, parameterized, no specific server names or environment details baked in.",
+prefill: "",
+chips: [
+{text:"function Get-DiskSpace {", hint:"A tool, reusable anywhere, starts as a generic function."},
+{text:"param ([Parameter(Mandatory=$True)][string]$ComputerName)", hint:"A required parameter, no hardcoded machine name, works against any computer the caller provides."},
+{text:"Get-CimInstance -ComputerName $ComputerName -ClassName Win32_LogicalDisk", hint:"The actual query, using only the parameter, nothing environment-specific."},
+{text:"}", hint:"Closes the function."}
+],
+check: function(c){ return /function\s+get-diskspace/i.test(c) && /mandatory\s*=\s*\$true/i.test(c) && /\$computername/i.test(c); },
+misses: [
+{test: function(c){ return /function\s+get-diskspace/i.test(c) && /web01/i.test(c); }, output: "(a specific server name hardcoded right into a function meant to be generic, defeats the entire purpose of a reusable tool)", note: "Hardcoding a specific server name directly into what's supposed to be a generic, reusable tool defeats the point entirely, it would only ever work against that one machine. A tool takes its target as a parameter, exactly like every built-in cmdlet does."}
+],
+hint: "function Get-DiskSpace { param ([Parameter(Mandatory=$True)][string]$ComputerName) Get-CimInstance -ComputerName $ComputerName -ClassName Win32_LogicalDisk }, no server names hardcoded anywhere.",
+tokens: [
+{text:"function Get-DiskSpace {", cat:"cmdlet", note:"A tool, named Verb-Noun style, meant to be generic and reusable."},
+{text:"param ([Parameter(Mandatory=$True)][string]$ComputerName)", cat:"param", note:"Required, but generic, works against any machine the caller names, no environment-specific assumptions."},
+{text:"Get-CimInstance -ComputerName $ComputerName -ClassName Win32_LogicalDisk", cat:"value", note:"The actual query, entirely driven by the parameter, nothing hardcoded."},
+{text:"}", cat:"cmdlet", note:"Closes the function."}
+],
+output: "(a function defined, callable as Get-DiskSpace -ComputerName <any machine at all>, nothing about our specific five servers baked in anywhere)",
+order: "This is built first, deliberately as the generic piece, since step 2's controller will actually call this tool, orchestrating it against specific machines rather than duplicating its logic.",
+notice: [
+{field:"No server names anywhere in this function", note:"This is exactly what makes it a tool rather than a controller, genuinely reusable in any environment, not just this one."}
+],
+distractor: {
+name: "Hardcoding one of the five real server names into the function",
+why: "Immediately breaks the whole premise of a generic, reusable tool, it would only ever work against that one specific machine, exactly the opposite of what a tool is meant to be.",
+better: "Better fit for: never inside a tool, hardcoded specifics belong in the controller that calls the tool, built next in step 2."
+},
+concepts: [
+{term: "Tools", explain: "Generic, parameterized, reusable in any environment, no specific assumptions baked in. A tool should work as well against a company's servers as it would against anyone else's, exactly like a built-in cmdlet does."}
+]
+},
+{
+title: "Step 2 of 3 - build the specific controller",
+task: "Now build the second piece as a controller: specific to your five real web servers, and email the team if one's low, hardcoding is fine here.",
+prefill: "",
+chips: [
+{text:"$servers = 'WEB01','WEB02','WEB03','WEB04','WEB05'", hint:"Hardcoded, on purpose, this script's whole job is orchestrating this specific, known set of machines."},
+{text:"foreach ($server in $servers) { $disk = Get-DiskSpace -ComputerName $server; if ($disk.FreeSpaceGB -lt 10) { Send-MailMessage -To 'ops-team@corp.local' -Subject \"$server low on disk\" } }", hint:"Calls the generic tool from step 1, then does something specific to this environment: emailing this exact team."}
+],
+check: function(c){ return /\$servers\s*=/i.test(c) && /web01/i.test(c) && /get-diskspace/i.test(c) && /send-mailmessage/i.test(c); },
+misses: [
+{test: function(c){ return /function\s+get-diskspace2/i.test(c) || (/get-ciminstance/i.test(c) && !/get-diskspace/i.test(c) && /web01/i.test(c)); }, output: "(rewrites the same disk-checking logic that already exists in the tool from step 1, instead of just calling it)", note: "Rebuilding the disk-checking logic again here duplicates what the tool from step 1 already does. A controller's job is to orchestrate, calling the existing generic tool, then adding the environment-specific behavior, hardcoded server names and a real email, on top of it."}
+],
+hint: "Hardcode the five real server names, then loop through them calling the Get-DiskSpace tool from step 1, and Send-MailMessage if one's low, exactly the specific orchestration a controller is for.",
+tokens: [
+{text:"$servers = 'WEB01','WEB02','WEB03','WEB04','WEB05'", cat:"value", note:"Hardcoded on purpose, a controller is allowed, even expected, to know specifics about its actual environment."},
+{text:"foreach ($server in $servers)", cat:"cmdlet", note:"Loops through the known, specific list."},
+{text:"Get-DiskSpace -ComputerName $server", cat:"value", note:"Calls the generic tool built in step 1, rather than duplicating its logic."},
+{text:"Send-MailMessage -To 'ops-team@corp.local'", cat:"value", note:"A specific, hardcoded action for this specific environment, exactly what a controller is meant to do."}
+],
+output: "(loops through the five real servers, calling Get-DiskSpace for each, emailing ops-team@corp.local for any that come back low)",
+order: "This comes right after building the generic tool, and deliberately calls it rather than rewriting its logic, exactly the relationship a controller should have with the tools it orchestrates.",
+notice: [
+{field:"Calls Get-DiskSpace, doesn't rewrite it", note:"The controller reuses the tool from step 1 rather than duplicating its logic, exactly the intended relationship between the two script types."}
+],
+distractor: {
+name: "Rewriting the disk-checking logic directly instead of calling the tool",
+why: "Duplicates logic that already exists cleanly in the generic tool from step 1. A controller's job is orchestration, calling existing tools and adding environment-specific behavior on top, not reimplementing what a tool already does.",
+better: "Better fit for: never once a generic tool already exists for the underlying task."
+},
+concepts: [
+{term: "Controllers", explain: "Specific, often hardcoded, scripts that orchestrate one particular situation, this company's five servers, this team's email address. Controllers are expected to call generic tools rather than duplicate their logic."}
+]
+},
+{
+title: "Step 3 of 3 - confirm the split actually holds up",
+task: "Confirm the tool from step 1 still works completely on its own, against a machine that isn't even one of the five hardcoded servers.",
+prefill: "",
+chips: [
+{text:"Get-DiskSpace -ComputerName DB07", hint:"A machine that was never mentioned anywhere in step 2's controller, proving the tool genuinely doesn't depend on it."}
+],
+check: function(c){ return /get-diskspace/i.test(c) && /db07/i.test(c); },
+misses: [],
+hint: "Get-DiskSpace -ComputerName DB07, a totally different, unrelated machine, confirming the generic tool from step 1 works completely independent of the controller's specific five servers.",
+tokens: [
+{text:"Get-DiskSpace", cat:"cmdlet", note:"The generic tool from step 1, being tested entirely on its own, outside the controller."},
+{text:"-ComputerName", cat:"param", note:"Its one required, generic parameter."},
+{text:"DB07", cat:"value", note:"A machine that appears nowhere in step 2's controller, proof the tool has no hidden dependency on it."}
+],
+output: "DeviceID FreeSpaceGB\n-------- -----------\nC:       28",
+order: "This is last, direct proof that the split from steps 1 and 2 actually holds up: the tool works completely independently, and the controller's specificity lives entirely in its own script, not leaked into the tool.",
+notice: [
+{field:"DB07, a server never mentioned in step 2", note:"Confirms the tool genuinely has zero dependency on the controller's specific, hardcoded environment."}
+],
+distractor: {
+name: "Only testing the tool against the same five servers from the controller",
+why: "Wouldn't actually prove the tool is generic, it might happen to work on those five for coincidental reasons. Testing against a completely unrelated machine is the real proof of genuine reusability.",
+better: "Better fit for: never as the only test, though it's a reasonable first check, a genuinely unrelated machine is the real proof."
+},
+concepts: [
+{term: "Verifying the tools/controllers split", explain: "A genuinely reusable tool should work identically regardless of which controller calls it, or none at all. Testing it against something outside the controller's specific, hardcoded scope is the real confirmation the separation actually holds."}
+]
+}
+]
+};
+PSLabInit(LESSON);
+</script>
+</body>
+</html>
