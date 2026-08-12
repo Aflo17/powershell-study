@@ -98,6 +98,10 @@ The entire curriculum is built and interactive: Phase 1 (Beginner, Ch 2–8), Ph
 
 Each phase ends with an optional exam: 10 questions randomly drawn from a larger pool built out of that phase's own lessons, same type-the-command format as everything else, no multiple choice. Exams don't gate anything, they're available any time from the hub and retaking one draws a fresh random set. Your best score per exam is what's remembered (localStorage, this browser only), and 70% or better counts as a pass.
 
+## Ask the Books
+
+A search box on the hub ("Ask the Books") lets you type a plain question, "what does the pipe do," "how do I see what an alias does," and get back the matching concept explanations pulled straight from the lesson content, with a link to the lesson it came from. It's keyword matching against everything already extracted from your two books, not a live AI, so it works offline and costs nothing, but it only knows what's already in the lessons.
+
 ## Suggested pace
 
 One lesson per sitting. Redo any lesson where the score wasn't clean before moving on, the scoring exists to tell you what to revisit, not just to gamify it. Once you've cleared a phase, the exam is a good gut-check before moving on, though nothing stops you from skipping straight ahead.

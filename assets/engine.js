@@ -30,6 +30,7 @@ function markLessonDone(totalScore, maxScore, examMeta) {
       var rawExam = localStorage.getItem("psLabExamProgress");
       var examProgress = rawExam ? JSON.parse(rawExam) : {};
       var pct = maxScore ? (totalScore / maxScore) : 0;
+      var threshold = typeof examMeta.passThreshold === "number" ? examMeta.passThreshold : 0.7;
       var prev = examProgress[examMeta.examId];
       var prevBest = (prev && prev.bestScore) || 0;
       examProgress[examMeta.examId] = {
@@ -37,7 +38,7 @@ function markLessonDone(totalScore, maxScore, examMeta) {
         maxScore: maxScore,
         lastScore: totalScore,
         lastPct: pct,
-        passed: pct >= 0.7,
+        passed: pct >= threshold,
         attempts: ((prev && prev.attempts) || 0) + 1,
         lastTakenAt: new Date().toISOString()
       };
@@ -330,20 +331,30 @@ function PSLabInit(LESSON) {
       card.style.cssText = "background:var(--surface-1);border-radius:12px;padding:1rem 1.25rem;margin-top:0.5rem;";
       var h = document.createElement("p");
       h.style.cssText = "margin:0 0 8px;font-weight:500;";
-      h.textContent = "Lesson complete";
+      h.textContent = LESSON.isExam ? "Exam complete" : "Lesson complete";
       var body = document.createElement("p");
       body.style.cssText = "margin:0 0 12px;font-size:14px;color:var(--text-secondary);";
       body.textContent = LESSON.completeMessage || "Nice work, that's the full lesson.";
       var totalScore = 0;
       for (var i = 0; i < stepScore.length; i++) { if (stepScore[i] !== null) { totalScore += stepScore[i]; } }
       var maxScore = steps.length * 100;
-      markLessonDone(totalScore, maxScore, LESSON.isExam ? { examId: LESSON.examId } : null);
+      var passThreshold = typeof LESSON.passThreshold === "number" ? LESSON.passThreshold : 0.7;
+      markLessonDone(totalScore, maxScore, LESSON.isExam ? { examId: LESSON.examId, passThreshold: passThreshold } : null);
       var ratio = totalScore / maxScore;
       var assessment;
       if (ratio >= 0.9) { assessment = "Clean run. That is proficiency showing."; }
       else if (ratio >= 0.7) { assessment = "Solid. Needing a hint here and there is completely normal at this stage."; }
       else if (ratio >= 0.5) { assessment = "You got there. Worth another pass on whichever steps you revealed."; }
       else { assessment = "You leaned on reveal a lot this round, that is fine for a first pass. Try it again from scratch without the safety net."; }
+      var passLine = null;
+      if (LESSON.isExam) {
+        passLine = document.createElement("p");
+        var passed = ratio >= passThreshold;
+        passLine.style.cssText = "font-size:14px;font-weight:500;margin:0 0 8px;color:" + (passed ? "var(--text-success)" : "var(--text-warning)") + ";";
+        passLine.textContent = passed
+          ? "Passed — " + Math.round(ratio * 100) + "% (need " + Math.round(passThreshold * 100) + "%)"
+          : "Not yet — " + Math.round(ratio * 100) + "% (need " + Math.round(passThreshold * 100) + "%). Retake any time for a fresh set of questions.";
+      }
       var scoreLine = document.createElement("p");
       scoreLine.style.cssText = "font-size:13px;color:var(--text-secondary);margin:0 0 12px;";
       scoreLine.textContent = "Final score: " + totalScore + " / " + maxScore + ". " + assessment;
@@ -367,6 +378,7 @@ function PSLabInit(LESSON) {
       });
       card.appendChild(h);
       card.appendChild(body);
+      if (passLine) { card.appendChild(passLine); }
       card.appendChild(scoreLine);
       card.appendChild(scriptLabel);
       card.appendChild(scriptBlock);

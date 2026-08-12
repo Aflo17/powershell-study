@@ -260,6 +260,11 @@ a { color: var(--text-accent); }
 .site-header-top h1 {
   margin: 0;
 }
+.header-btn-group {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
 .hints-btn {
   flex-shrink: 0;
   font-size: 13px;
@@ -270,6 +275,10 @@ a { color: var(--text-accent); }
 }
 .hints-btn:hover {
   filter: brightness(1.05);
+}
+.ask-btn {
+  background: var(--bg-accent);
+  color: var(--text-accent);
 }
 
 .hints-overlay {
@@ -408,4 +417,94 @@ a { color: var(--text-accent); }
 .exam-status-passed {
   color: var(--text-success);
   font-weight: 500;
+}
+
+.ask-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  align-items: flex-start;
+  justify-content: center;
+  padding: 1.5rem;
+  z-index: 100;
+  overflow-y: auto;
+}
+.ask-card {
+  position: relative;
+  width: 100%;
+  max-width: 560px;
+  margin-top: 3vh;
+  background: var(--surface-2);
+  border: 0.5px solid var(--border-strong);
+  border-radius: 14px;
+  padding: 1.75rem 1.75rem 1.25rem;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+  animation: hints-pop 0.15s ease-out;
+}
+.ask-eyebrow {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-accent);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin: 0 0 10px;
+}
+.ask-input {
+  width: 100%;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  border: 0.5px solid var(--border-strong);
+  background: var(--surface-1);
+  color: var(--text-primary);
+  margin-bottom: 1rem;
+}
+.ask-results {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 48vh;
+  overflow-y: auto;
+  margin-bottom: 0.5rem;
+}
+.ask-empty {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin: 0;
+  padding: 0.5rem 0;
+}
+.ask-result {
+  background: var(--surface-1);
+  border-radius: 10px;
+  padding: 0.75rem 0.9rem;
+}
+.ask-result-term {
+  font-size: 14px;
+  font-weight: 500;
+  margin: 0 0 4px;
+}
+.ask-result-explain {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.55;
+  margin: 0;
+}
+.ask-result-source {
+  display: inline-block;
+  font-size: 11px;
+  color: var(--text-accent);
+  text-decoration: none;
+  margin-top: 6px;
+}
+.ask-result-source:hover {
+  text-decoration: underline;
+}
+.ask-footnote {
+  font-size: 11px;
+  color: var(--text-muted);
+  border-top: 0.5px solid var(--border);
+  padding-top: 0.75rem;
+  margin: 0;
 }
