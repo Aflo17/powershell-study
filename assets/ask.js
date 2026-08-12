@@ -31,10 +31,18 @@
     return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   }
 
+  // Structural PowerShell symbols that should tokenize as their own standalone
+  // token even when typed with no surrounding spaces, e.g. "{}" or "@()".
+  // $, |, -, and _ are deliberately excluded here since those need to stay
+  // glued to letters to keep things like $_, where-object, or $psversiontable
+  // intact as single tokens.
+  var SPLIT_SYMBOLS = /([{}()\[\];%@#*+=<>])/g;
+
   function tokenize(query) {
     var lower = query.toLowerCase();
     // keep letters, digits, and the handful of PowerShell-meaningful symbols
-    var cleaned = lower.replace(/[^a-z0-9$|_\-\s]/g, " ");
+    var cleaned = lower.replace(/[^a-z0-9$|_\-{}()\[\];%@#*+=<>\s]/g, " ");
+    cleaned = cleaned.replace(SPLIT_SYMBOLS, " $1 ");
     var raw = cleaned.split(/\s+/).filter(function (t) { return t.length > 0; });
     var tokens = [];
     var seen = {};
@@ -102,6 +110,19 @@
   // expose for the modal wiring below, and for a quick console/node sanity check
   window.PSAskSearch = search;
 
+  function bookPageLink(tip) {
+    if (!tip.chapter || !tip.book || typeof PS_BOOK_PAGES === "undefined") { return null; }
+    var bookKey = "book" + tip.book;
+    var bookData = PS_BOOK_PAGES[bookKey];
+    if (!bookData) { return null; }
+    var page = bookData.chapters[String(tip.chapter)];
+    if (!page) { return null; }
+    return {
+      href: "books/" + bookData.file + "#page=" + page,
+      label: "Book " + tip.book + ", Ch " + tip.chapter
+    };
+  }
+
   function friendlyLessonLabel(source) {
     if (!source) { return null; }
     var m = source.match(/^([a-z]+)-?(\d*)/i);
@@ -133,13 +154,29 @@
       explain.textContent = tip.explain;
       card.appendChild(term);
       card.appendChild(explain);
+
       var label = friendlyLessonLabel(tip.source);
-      if (label) {
-        var src = document.createElement("a");
-        src.className = "ask-result-source";
-        src.textContent = "From " + label + " →";
-        src.href = "lessons/" + tip.source + ".html";
-        card.appendChild(src);
+      var pageLink = bookPageLink(tip);
+      if (label || pageLink) {
+        var linkRow = document.createElement("div");
+        linkRow.className = "ask-result-links";
+        if (label) {
+          var src = document.createElement("a");
+          src.className = "ask-result-source";
+          src.textContent = "From " + label + " →";
+          src.href = "lessons/" + tip.source + ".html";
+          linkRow.appendChild(src);
+        }
+        if (pageLink) {
+          var bookBtn = document.createElement("a");
+          bookBtn.className = "ask-result-source ask-result-book";
+          bookBtn.textContent = "📖 See in Book (" + pageLink.label + ") →";
+          bookBtn.href = pageLink.href;
+          bookBtn.target = "_blank";
+          bookBtn.rel = "noopener";
+          linkRow.appendChild(bookBtn);
+        }
+        card.appendChild(linkRow);
       }
       wrap.appendChild(card);
     });

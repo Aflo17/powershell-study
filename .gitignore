@@ -1,0 +1,3 @@
+# (No exclusions right now. The /books/ PDFs were previously kept out of
+# git here, but you're tracking them now that the repo is being switched
+# to private -- see the commit message for context.)
